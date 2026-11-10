@@ -1,0 +1,954 @@
+# MASTER PROJECT PROMPT
+# Premium AI Invoice & Expense Management SaaS
+
+## 1. YOUR ROLE
+
+Act as a senior product designer, UI/UX architect, SaaS product architect, senior full-stack developer, and quality assurance engineer.
+
+Your responsibility is to build a production-quality, modern, premium Invoice & Expense Management Application.
+
+This is not a basic CRUD application.
+
+The product must deliver an excellent customer experience, exceptional visual quality, reliable document processing, and genuinely useful expense management functionality.
+
+Think like a product company building a commercial SaaS product that customers would genuinely enjoy using and paying for.
+
+## 2. MOST IMPORTANT PRODUCT PRIORITIES
+
+Follow this priority order:
+
+1. Premium UI/UX and visual design.
+2. Landing page and customer dashboard.
+3. Complete working application features.
+4. Accurate AI-assisted invoice extraction.
+5. Original document and digital data relationship.
+6. Expense analytics and reporting.
+7. Subscription and payment management.
+8. Security, performance, accessibility, and reliability.
+
+Do not sacrifice usability or visual quality to finish features quickly.
+
+Do not create a beautiful frontend with nonfunctional buttons or placeholder functionality.
+
+Every implemented feature must work.
+
+## 3. PRODUCT DEFINITION
+
+Build a personal Invoice & Expense Management Application.
+
+The application allows individual customers to upload invoices, receipts, purchase photographs, hospital bills, contractor invoices, and PDF documents.
+
+The application recognizes the uploaded documents, extracts their information, converts the information into a readable digital format, and organizes everything automatically.
+
+Customers can subsequently:
+
+- View original invoices.
+- View extracted digital invoices.
+- Search historical documents.
+- Understand their spending.
+- Generate expense reports.
+- Export reports and invoices.
+- Download historical documents.
+
+### Account Model
+
+This is NOT a multi-tenant business/workspace platform.
+
+Do not implement organization management, company workspaces, organization switching, or business tenant administration.
+
+Individual customer accounts must have isolated personal data.
+
+Every customer's documents, invoice records, categories, reports, and subscription information must belong to that customer's account.
+
+No customer must ever be able to access another customer's private information.
+
+## 4. VISUAL DESIGN REQUIREMENTS
+
+UI/UX is one of the highest priorities.
+
+The application must look like a modern premium fintech/SaaS product.
+
+### Design Direction
+
+Use a sophisticated contemporary visual language.
+
+Preferred characteristics:
+
+- Clean and elegant layouts.
+- Light theme by default.
+- Deep navy typography.
+- Premium blue and violet accents.
+- Subtle gradients.
+- Soft neutral backgrounds.
+- Beautiful typography.
+- Consistent spacing.
+- Elegant card layouts.
+- Refined shadows.
+- Subtle animations and transitions.
+- Clear visual hierarchy.
+- Beautiful icons.
+- Consistent border radiuses.
+
+Use a modern professional typography system.
+
+The design must feel polished, trustworthy, and commercially competitive.
+
+### Design Restrictions
+
+Do not produce:
+
+- Generic Bootstrap-style dashboards.
+- Outdated admin templates.
+- Crowded layouts.
+- Excessive gradients.
+- Excessive colorful cards.
+- Unnecessary decorative elements.
+- Tiny unreadable typography.
+- Excessive navigation items.
+- Unnecessary confirmation dialogs.
+- Inconsistent buttons and form controls.
+- Unfinished or default component-library styling.
+
+Use a consistent design system across every screen.
+
+### Responsive Requirements
+
+The application must work beautifully on:
+
+- Desktop.
+- Laptop.
+- Tablet.
+- Mobile phones.
+
+Mobile users must be able to take photographs of receipts directly using their device camera.
+
+All layouts must be responsive and usable without horizontal scrolling.
+
+## 5. LANDING PAGE REQUIREMENTS
+
+The landing page is a critical customer acquisition component.
+
+It must immediately communicate the product's value.
+
+### Hero Section
+
+Create an impressive hero section with a clear headline.
+
+Suggested headline:
+
+"Every Receipt. Every Invoice. One Organized Place."
+
+Supporting description:
+
+"Capture your receipts, organize your invoices, and understand exactly where your money goes — automatically."
+
+Primary CTA:
+
+"Start for Free"
+
+Secondary CTA:
+
+"Explore Features"
+
+Include a visually impressive product dashboard preview.
+
+The hero must clearly demonstrate that the application can transform a receipt photograph into structured digital information.
+
+### Landing Page Sections
+
+Implement:
+
+1. Premium navigation bar.
+2. Hero section.
+3. Product interface preview.
+4. How it works.
+5. AI invoice recognition explanation.
+6. Automatic store categorization.
+7. Expense tracking and analytics.
+8. Supported document types.
+9. Original document and digital invoice comparison.
+10. Feature highlights.
+11. Pricing comparison.
+12. Frequently asked questions.
+13. Final call to action.
+14. Professional footer.
+
+### Landing Page UX
+
+The customer should understand the following within a few seconds:
+
+- What the application does.
+- Why it is useful.
+- How easy it is to use.
+- What documents it supports.
+- What the customer receives.
+- Which plan is appropriate.
+
+Do not overcrowd the landing page.
+
+The design must encourage visitors to create a free account.
+
+## 6. AUTHENTICATION AND CUSTOMER EXPERIENCE
+
+Provide a simple customer account experience.
+
+Requirements:
+
+- Customer registration.
+- Login.
+- Logout.
+- Password recovery.
+- Account profile.
+- Account settings.
+- Subscription status.
+- Secure access to personal documents.
+
+After login, take the customer directly to the main dashboard.
+
+Avoid unnecessary onboarding questionnaires.
+
+The customer must be able to start uploading documents immediately.
+
+## 7. MAIN APPLICATION DASHBOARD
+
+The dashboard is the most important authenticated screen.
+
+It must be visually attractive and genuinely useful.
+
+### Dashboard Overview
+
+Display:
+
+- Total spending.
+- Total documents uploaded.
+- Total invoices processed.
+- Spending this month.
+- Previous month spending.
+- Recent transactions.
+- Recent uploads.
+- Spending by store.
+- Spending by category.
+- Monthly spending trends.
+- Recent expense activity.
+
+### Quick Actions
+
+Provide prominent actions:
+
+- Upload Receipt.
+- Upload Invoice.
+- View All Documents.
+- View Reports.
+- Search Documents.
+
+The upload action must be immediately visible.
+
+### Dashboard Analytics
+
+Provide beautiful and meaningful visualizations:
+
+- Monthly expense trend.
+- Store-wise expense distribution.
+- Category-wise spending.
+- Spending comparison.
+- Recent expense history.
+
+Charts must use real customer data.
+
+Never display fabricated analytics or placeholder financial information.
+
+Provide useful empty states for new customers.
+
+## 8. DOCUMENT UPLOAD EXPERIENCE
+
+Document uploading must be extremely simple.
+
+The customer should be able to:
+
+1. Click Upload.
+2. Take a photograph or select an image.
+3. Select a PDF.
+4. Wait for document recognition.
+5. Review extracted information.
+6. Confirm and save.
+
+Support:
+
+- JPG.
+- JPEG.
+- PNG.
+- PDF.
+- Other image formats where supported.
+
+Allow camera capture on supported devices.
+
+Provide clear upload progress and processing status.
+
+Avoid unnecessary questions and manual category selection.
+
+## 9. AI INVOICE RECOGNITION
+
+The application must extract available information from uploaded documents.
+
+Recognize:
+
+- Vendor name.
+- Store name.
+- Invoice number.
+- Receipt number.
+- Transaction date.
+- Transaction time.
+- Product names.
+- Service descriptions.
+- Quantity.
+- Unit price.
+- Individual line totals.
+- Discounts.
+- Taxes.
+- Subtotal.
+- Grand total.
+- Payment information.
+- Other relevant information.
+
+### Human-Readable Product Names
+
+This is a critical requirement.
+
+Retail receipts frequently contain abbreviated descriptions, internal product codes, or shortened product names.
+
+Do not simply display the raw receipt description as the final product name.
+
+The application must attempt to identify and present understandable product and service names.
+
+Examples:
+
+- BANANA → Bananas.
+- APPLE SHP → Apple Shape, only when the product identity can be verified.
+- Abbreviated retailer descriptions → readable product descriptions when identifiable.
+
+Preserve both:
+
+1. Original extracted description.
+2. Human-readable description.
+
+Never invent a product identity when it cannot be established.
+
+If a product cannot be confidently identified, retain its original description and clearly indicate that the description is unverified.
+
+The same requirements apply to unknown stores and vendors.
+
+### Extraction Accuracy
+
+The system must:
+
+- Preserve original monetary values.
+- Avoid inventing missing values.
+- Identify uncertain fields.
+- Distinguish missing information from zero.
+- Identify duplicate uploads where possible.
+- Validate invoice totals against available line items.
+- Flag discrepancies for customer review.
+
+## 10. INVOICE REVIEW AND CONFIRMATION
+
+After processing, display a beautiful invoice review screen.
+
+Show:
+
+- Vendor information.
+- Transaction information.
+- Product/service descriptions.
+- Quantities.
+- Prices.
+- Taxes.
+- Discounts.
+- Total.
+
+Allow customers to correct extracted information.
+
+The original receipt or invoice must remain accessible during review.
+
+Provide two clear actions:
+
+- Confirm & Save.
+- Edit Information.
+
+Do not require customers to complete unnecessary forms.
+
+After confirmation, save the document and its corresponding digital information.
+
+## 11. AUTOMATIC STORE AND VENDOR CATEGORIZATION
+
+Automatically identify the store or vendor.
+
+Examples:
+
+- Walmart.
+- Costco.
+- Target.
+- Amazon.
+- Home Depot.
+- Lowe's.
+- Hospitals.
+- Medical providers.
+- Contractors.
+- Service providers.
+
+Create a new vendor category when an unknown vendor is identified.
+
+Automatically associate the document with the appropriate vendor.
+
+Do not ask the customer to manually select a category during normal upload processing.
+
+Support vendor categories and broader expense categories.
+
+Examples:
+
+Vendor:
+- Walmart.
+- Costco.
+- Home Depot.
+
+Expense categories:
+- Groceries.
+- Household.
+- Medical.
+- Construction.
+- Transportation.
+- Utilities.
+
+The system must support both vendor-based and expense-category-based organization.
+
+## 12. ORIGINAL DOCUMENT AND DIGITAL RECORD
+
+Every uploaded document must have a corresponding digital record.
+
+Maintain a permanent relationship between:
+
+- Original image or PDF.
+- Extracted invoice information.
+- Vendor.
+- Transaction date.
+- Total amount.
+- Line items.
+- Expense category.
+
+Customers must be able to switch between the original document and digital invoice.
+
+Provide original document download and digital data export.
+
+Never lose the original document when extracted information is edited.
+
+## 13. DOCUMENT MANAGEMENT
+
+Provide a dedicated document management area.
+
+Features:
+
+- View all documents.
+- Search documents.
+- Filter by vendor.
+- Filter by date.
+- Filter by category.
+- Filter by amount.
+- Filter by document type.
+- Sort by date.
+- Sort by amount.
+- View original documents.
+- View digital records.
+- Edit invoice information.
+- Download documents.
+- Delete documents with appropriate confirmation.
+
+Provide pagination or efficient browsing for large document collections.
+
+## 14. EXPENSE REPORTING
+
+Provide comprehensive expense reporting.
+
+### Reporting Periods
+
+- Today.
+- Yesterday.
+- This week.
+- Last week.
+- This month.
+- Last month.
+- Last three months.
+- Last six months.
+- This year.
+- Previous year.
+- Custom date range.
+
+### Report Information
+
+Display:
+
+- Total spending.
+- Total number of transactions.
+- Average transaction amount.
+- Vendor-wise spending.
+- Category-wise spending.
+- Product-wise spending.
+- Tax totals.
+- Discount totals.
+- Monthly comparisons.
+- Spending trends.
+
+### Spending Insights
+
+Help customers understand:
+
+- Where their money goes.
+- Which vendors receive the most spending.
+- Which categories cost the most.
+- What products they purchase frequently.
+- Whether monthly expenses have increased.
+- How spending compares with previous periods.
+
+All calculations must use actual saved invoice data.
+
+## 15. SEARCH
+
+Provide global document search.
+
+Search should support:
+
+- Vendor name.
+- Product name.
+- Service description.
+- Invoice number.
+- Receipt number.
+- Transaction date.
+- Amount.
+- Expense category.
+
+Customers must be able to search historical invoices across their complete accessible history.
+
+## 16. EXPORT AND DOWNLOAD
+
+Support these export formats:
+
+- CSV.
+- XML.
+- PDF.
+
+### Export Capabilities
+
+Customers must be able to:
+
+- Export individual invoice information.
+- Export multiple invoices.
+- Export expense reports.
+- Export documents within a custom date range.
+- Download original documents.
+- Download digital invoice information.
+
+For historical exports, preserve the association between each original document and its corresponding digital information.
+
+Provide clear filenames and organized downloads.
+
+## 17. NON-RETAIL DOCUMENT SUPPORT
+
+Do not restrict the application to shopping receipts.
+
+Support:
+
+### Hospital and Medical Bills
+
+Recognize:
+
+- Hospital/provider name.
+- Service descriptions.
+- Procedure charges.
+- Individual amounts.
+- Insurance adjustments, when available.
+- Patient responsibility, when available.
+- Taxes and totals, when applicable.
+
+### Contractor Invoices
+
+Recognize:
+
+- Contractor/company name.
+- Project description.
+- Labor.
+- Materials.
+- Individual services.
+- Additional charges.
+- Taxes.
+- Total project amount.
+
+### General Service Invoices
+
+Support:
+
+- Plumbing.
+- Electrical work.
+- Roofing.
+- Painting.
+- Flooring.
+- Renovation.
+- Other professional services.
+
+Allow new vendors and document types without requiring customers to select from a restrictive predefined list.
+
+## 18. PRICING AND SUBSCRIPTION
+
+Implement two plans.
+
+### FREE PLAN
+
+Price: $0.
+
+Recommended limits:
+
+- 15 processed documents per month.
+- AI-assisted extraction.
+- Vendor categorization.
+- Original document storage.
+- Digital invoice viewing.
+- Basic dashboard.
+- Basic search.
+- CSV export.
+
+### PRO PLAN
+
+Price: $10/month.
+
+Optional annual price: $99/year.
+
+Features:
+
+- 500 processed documents per month.
+- Everything included in Free.
+- Advanced analytics.
+- Full historical reports.
+- CSV, XML, and PDF exports.
+- Bulk downloads.
+- Advanced search.
+- Extended storage allowance.
+- Priority processing.
+
+All limits must be configurable.
+
+Do not hardcode subscription limits throughout the application.
+
+Display subscription usage and remaining document allowance.
+
+Notify customers when they approach their upload limits.
+
+Never silently discard customer uploads.
+
+### Stripe Integration
+
+Use Stripe for recurring subscription billing.
+
+Required functionality:
+
+- Pro monthly subscription.
+- Pro annual subscription.
+- Secure Stripe Checkout.
+- Subscription upgrades.
+- Subscription downgrades.
+- Cancellation.
+- Renewal handling.
+- Payment failure handling.
+- Subscription status synchronization.
+- Stripe Customer Portal.
+- Billing history.
+- Invoice/payment receipts.
+
+Use verified Stripe webhook events to maintain subscription status.
+
+Never rely exclusively on frontend payment success messages.
+
+The Free plan must be available without entering payment information.
+
+Do not delete customer documents after subscription cancellation.
+
+When a Pro subscription ends, apply the Free plan's new-upload limits while preserving existing customer documents and access to historical records.
+
+Clearly explain subscription restrictions before customers upgrade or downgrade.
+
+## 19. APPLICATION NAVIGATION
+
+Keep navigation simple.
+
+Recommended primary navigation:
+
+- Dashboard.
+- Upload.
+- Documents.
+- Vendors.
+- Categories.
+- Reports.
+- Settings.
+
+Place subscription management and account information in the profile/settings area.
+
+Avoid creating unnecessary navigation items.
+
+## 20. SETTINGS
+
+Provide:
+
+- Profile management.
+- Account preferences.
+- Document preferences.
+- Subscription management.
+- Billing history.
+- Password management.
+- Account deletion.
+- Data export.
+
+Customers must have appropriate control over their personal information.
+
+## 21. PRIVACY AND SECURITY REQUIREMENTS
+
+Invoices may contain sensitive personal and financial information.
+
+Treat all uploaded documents as private.
+
+Requirements:
+
+- Secure authentication.
+- Customer-specific data access.
+- Private document access.
+- Secure download permissions.
+- Protection against unauthorized document access.
+- Secure handling of uploaded files.
+- Protection against cross-account data exposure.
+- Appropriate deletion behavior.
+- Secure payment processing through Stripe.
+
+Never expose customer documents through public URLs.
+
+## 22. ERROR HANDLING AND CUSTOMER FEEDBACK
+
+Provide meaningful messages for:
+
+- Invalid documents.
+- Unsupported formats.
+- Upload failures.
+- Processing failures.
+- Low-confidence extraction.
+- Duplicate uploads.
+- Missing vendor information.
+- Payment failures.
+- Subscription limits.
+
+Allow customers to retry failed processing.
+
+Do not display technical stack traces to customers.
+
+Use understandable language.
+
+## 23. ACCESSIBILITY AND PERFORMANCE
+
+Ensure:
+
+- Responsive design.
+- Accessible form controls.
+- Keyboard navigation.
+- Readable typography.
+- Appropriate contrast.
+- Clear loading states.
+- Fast navigation.
+- Optimized document previews.
+- Efficient search.
+- Good performance on mobile networks.
+
+## 24. IMPLEMENTATION RULES FOR KIRO
+
+Before changing anything:
+
+1. Inspect the existing project.
+2. Understand the existing codebase.
+3. Identify existing frameworks and dependencies.
+4. Identify completed functionality.
+5. Identify incomplete functionality.
+6. Preserve working functionality.
+7. Do not replace the existing technology stack without explicit approval.
+8. Do not overwrite existing configuration unnecessarily.
+
+Use the existing project structure and established coding conventions.
+
+Do not introduce unnecessary dependencies.
+
+Do not leave placeholder pages or fake functionality.
+
+Do not implement a button that does nothing.
+
+Do not use mock data as a substitute for real functionality.
+
+Demo data may be used only in clearly identified development/demo environments.
+
+All customer-facing production screens must use actual application data.
+
+## 25. PHASED IMPLEMENTATION
+
+Build the application in controlled phases.
+
+Do not attempt to implement everything in one uncontrolled change.
+
+### Phase 1: Product UI and Design Foundation
+
+- Establish design system.
+- Build landing page.
+- Build navigation.
+- Build authentication screens.
+- Build dashboard layout.
+- Build responsive layouts.
+- Establish reusable UI components.
+- Implement empty states and loading states.
+
+The result must look premium before proceeding.
+
+### Phase 2: Customer Accounts and Document Management
+
+- Customer authentication.
+- Customer-specific document access.
+- Document uploads.
+- Original document viewing.
+- Document history.
+- Vendor management.
+- Category management.
+
+### Phase 3: AI Document Processing
+
+- Image recognition.
+- PDF processing.
+- Invoice information extraction.
+- Product/service description normalization.
+- Human-readable names.
+- Vendor identification.
+- Confidence handling.
+- Invoice review.
+- Confirmation and saving.
+
+### Phase 4: Expense Management
+
+- Expense calculations.
+- Dashboard analytics.
+- Search.
+- Filters.
+- Historical views.
+- Vendor-wise reports.
+- Category-wise reports.
+- Date-range reports.
+
+### Phase 5: Export Functionality
+
+- CSV exports.
+- XML exports.
+- PDF exports.
+- Original document downloads.
+- Bulk downloads.
+- Historical document exports.
+
+### Phase 6: Stripe and Subscription
+
+- Free plan.
+- Pro monthly plan.
+- Pro annual plan.
+- Stripe Checkout.
+- Webhooks.
+- Subscription management.
+- Usage limits.
+- Billing portal.
+- Payment failure handling.
+
+### Phase 7: Quality Assurance and Production Readiness
+
+- Functional testing.
+- UI testing.
+- Responsive testing.
+- Security testing.
+- Customer data isolation testing.
+- Document processing testing.
+- Export testing.
+- Subscription testing.
+- Error handling.
+- Performance testing.
+
+## 26. ACCEPTANCE CRITERIA
+
+The application is not complete merely because screens have been created.
+
+The following customer journey must work end to end:
+
+1. A customer visits the landing page.
+2. The customer understands the product.
+3. The customer creates a free account.
+4. The customer opens the dashboard.
+5. The customer uploads a Walmart receipt photograph.
+6. The application identifies Walmart.
+7. The application extracts receipt information.
+8. The application displays human-readable product names.
+9. The customer verifies the prices.
+10. The customer confirms the invoice.
+11. The application saves the original image and digital information together.
+12. The customer uploads a Costco receipt.
+13. The application organizes it under Costco automatically.
+14. The customer uploads a hospital bill PDF.
+15. The application extracts the available information.
+16. The customer views all documents in one place.
+17. The customer searches historical invoices.
+18. The customer views spending reports.
+19. The customer exports a monthly report.
+20. The customer downloads six months of original documents and digital invoice information.
+21. The customer upgrades to Pro.
+22. The customer completes payment through Stripe.
+23. The application recognizes the Pro subscription.
+24. The customer can manage billing and cancellation.
+
+Every acceptance criterion must be tested.
+
+## 27. FINAL PRODUCT EXPECTATION
+
+The finished application must look and feel like a commercially successful premium SaaS product.
+
+The most important customer experience is:
+
+OPEN APPLICATION → UPLOAD DOCUMENT → REVIEW DIGITAL INFORMATION → CONFIRM → SAVE.
+
+Everything else should be easily accessible without complicating this primary workflow.
+
+Prioritize customer satisfaction, simplicity, visual excellence, data accuracy, and reliability.
+
+Do not introduce unnecessary functionality merely to make the application appear larger.
+
+Build a focused, beautiful, dependable product that customers enjoy using.
+
+## 28. EXECUTION INSTRUCTIONS
+
+Start by inspecting the existing project.
+
+Then prepare a concise implementation assessment identifying:
+
+- Existing technologies.
+- Existing completed features.
+- Missing features.
+- Existing design quality.
+- Required changes.
+- Potential implementation risks.
+
+Do not immediately rewrite the application.
+
+Follow the implementation phases in order.
+
+After completing each phase:
+
+1. Report what was implemented.
+2. List working functionality.
+3. Identify remaining requirements.
+4. Run relevant tests.
+5. Report test results.
+6. Identify any unresolved issues.
+
+Do not claim a feature is complete unless it has been implemented and verified.
+
+Maintain this document as the master product specification throughout development.
+
+The goal is a complete production-ready application, not merely a visual prototype.
