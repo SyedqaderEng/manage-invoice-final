@@ -1,16 +1,28 @@
 import { ArrowDown, ArrowRight, Check, FileImage, FileText, ScanLine, ShieldCheck, Sparkles } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
+import { useEffect, useState } from 'react'
+import { api } from '../../api'
+import { formatPlanPrice, parsePersonalPlans, type PersonalPlan } from '../billing/pricing'
 
 interface LandingPageProps {
   onNavigate: (path: string) => void
 }
 
-const plans = [
-  { name: 'Free', price: '$0', period: 'forever', description: 'A simpler way to keep receipts in one place.', features: ['15 processed documents each month', 'AI-assisted extraction', 'Original document storage', 'Digital invoice viewing', 'Basic search and CSV export'] },
-  { name: 'Pro', price: '$10', period: 'per month', description: 'More insight and room to organize everything.', features: ['500 processed documents each month', 'Everything in Free', 'Advanced analytics and history', 'CSV, XML, and PDF exports', 'Bulk downloads and priority processing'], featured: true },
-]
-
 export function LandingPage({ onNavigate }: LandingPageProps) {
+  const [plans, setPlans] = useState<PersonalPlan[] | null>(null)
+  const [pricingError, setPricingError] = useState(false)
+  const [retryPricing, setRetryPricing] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    setPricingError(false)
+    api<unknown>('/api/v1/billing/personal/plans')
+      .then(parsePersonalPlans)
+      .then(result => { if (active) setPlans(result) })
+      .catch(() => { if (active) setPricingError(true) })
+    return () => { active = false }
+  }, [retryPricing])
+
   return (
     <main className="landing-page">
       <header className="landing-nav-wrap">
@@ -93,14 +105,27 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
       <section className="pricing-section" id="pricing">
         <div className="section-wrap pricing-wrap">
           <div className="section-intro pricing-intro"><div className="section-kicker">SIMPLE, HONEST PRICING</div><h2>Start free.<br />Grow when you’re ready.</h2><p>Keep the essentials for free. Upgrade when you want more room and deeper insight.</p></div>
+          {pricingError ? <div role="alert"><p>Unable to load pricing. Please try again.</p><Button variant="secondary" onClick={() => setRetryPricing(value => value + 1)}>Retry pricing</Button></div> : !plans ? <p role="status">Loading pricing…</p> :
           <div className="pricing-cards">{plans.map((plan) => (
-            <article key={plan.name} className={`price-card ${plan.featured ? 'featured' : ''}`}>
-              {plan.featured ? <div className="popular-label">A LITTLE MORE ROOM</div> : null}
-              <h3>{plan.name}</h3><p>{plan.description}</p><div className="price-amount">{plan.price}<span> / {plan.period}</span></div>{plan.name === 'Pro' ? <div className="annual-note">Or $99 per year</div> : <div className="annual-note">&nbsp;</div>}
-              <Button variant={plan.featured ? 'primary' : 'secondary'} onClick={() => onNavigate('/register')}>Start with {plan.name} <ArrowRight size={16} /></Button>
-              <div className="price-divider" /><ul>{plan.features.map((feature) => <li key={feature}><Check size={15} />{feature}</li>)}</ul>
+            <article key={plan.id} className={`price-card ${plan.id === 'pro' ? 'featured' : ''}`}>
+              {plan.id === 'pro' ? <div className="popular-label">COMING SOON</div> : null}
+              <h3>{plan.name}</h3><p>{plan.id === 'free' ? 'A simpler way to keep receipts in one place.' : 'More room to organize everything.'}</p>
+              <div className="price-amount">{formatPlanPrice(plan.monthlyCents)}<span> / {plan.id === 'free' ? 'forever' : 'month'}</span></div>
+              <div className="annual-note">{plan.id === 'pro' ? `Or ${formatPlanPrice(plan.yearlyCents)} per year` : '\u00a0'}</div>
+              {plan.id === 'free'
+                ? <Button variant="secondary" onClick={() => onNavigate('/register')}>Start with Free <ArrowRight size={16} /></Button>
+                : <Button disabled>Pro checkout coming soon</Button>}
+              <div className="price-divider" /><ul>
+                {plan.id === 'free' ? <li><Check size={15} />{plan.lifetimeFreeReceipts} receipts lifetime (planned limit)</li> : <>
+                  <li><Check size={15} />Unlimited receipts (planned)</li>
+                  <li><Check size={15} />One card-backed {plan.trialMonths}-month trial per account (planned)</li>
+                  <li><Check size={15} />Automatically converts unless canceled</li>
+                </>}
+                <li><Check size={15} />Original document storage</li>
+              </ul>
             </article>
-          ))}</div>
+          ))}</div>}
+          <p>Personal billing and receipt limits are not yet active. Pro checkout is unavailable.</p>
         </div>
       </section>
 
@@ -109,7 +134,7 @@ export function LandingPage({ onNavigate }: LandingPageProps) {
         <div className="faq-list">
           <details><summary>What kinds of documents can I save?<span>+</span></summary><p>Receipts and invoices as photos or PDFs, including retail purchases, medical bills, contractor work, and other service documents.</p></details>
           <details><summary>Can I keep my original receipt?<span>+</span></summary><p>Yes. The original image or PDF stays connected to its organized digital record, so you can return to the source whenever you need it.</p></details>
-          <details><summary>Do I have to pay to get started?<span>+</span></summary><p>No. The Free plan includes up to 15 processed documents each month, with no payment details needed to start.</p></details>
+          <details><summary>Do I have to pay to get started?<span>+</span></summary><p>No. You can start without payment details. The planned Free allowance is 30 receipts lifetime; this limit is not yet enforced.</p></details>
           <details><summary>What happens if a detail doesn’t look right?<span>+</span></summary><p>You’ll be able to review the extracted details alongside your original document and correct them before saving.</p></details>
         </div>
       </section>

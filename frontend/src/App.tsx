@@ -1,34 +1,34 @@
 import { useEffect, useState } from 'react'
-import { ArrowUpRight, FileImage, FileText, Plus, Search, Sparkles } from 'lucide-react'
+import { ArrowUpRight, FileImage, Plus, Sparkles } from 'lucide-react'
 import { AuthScreen } from './features/auth/AuthScreen'
+import { PasswordRecovery } from './features/auth/PasswordRecovery'
 import { Sidebar } from './components/navigation/Sidebar'
 import { TopBar } from './components/navigation/TopBar'
 import { Button } from './components/ui/Button'
 import { LandingPage } from './features/landing/LandingPage'
 import { DocumentLibrary } from './features/documents/DocumentLibrary'
+import { SpendingDashboard } from './features/documents/SpendingDashboard'
 import { CustomerDataPage } from './features/documents/CustomerDataPage'
+import { api, ApiError } from './api'
+import { supabase } from './supabase'
+import { parseUploadUsage, type UploadUsage } from './features/billing/usage'
 
 interface User { id: string; email: string; firstName: string; lastName: string }
-interface AuthResponse { accessToken: string; user: User }
 
-const api = async <T,>(path: string, options: RequestInit = {}, token?: string): Promise<T> => {
-  const headers = new Headers(options.headers)
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) headers.set('Content-Type', 'application/json')
-  if (token) headers.set('Authorization', `Bearer ${token}`)
-  const response = await fetch(path, { ...options, headers })
-  if (!response.ok) {
-    const body = await response.json().catch(() => null)
-    throw new Error(body?.detail || body?.message || 'Request failed')
-  }
-  return response.status === 204 ? undefined as T : response.json() as Promise<T>
-}
 type Api = typeof api
 
 export function App() {
-  const [token, setToken] = useState(() => localStorage.getItem('ledgerlyToken') || '')
+  const [token, setToken] = useState('')
+  const [authReady, setAuthReady] = useState(false)
+  const [recoveryUserId, setRecoveryUserId] = useState(() => sessionStorage.getItem('ledgerlyRecoveryUserId') || '')
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState('')
+  const [sessionState, setSessionState] = useState<'loading' | 'ready' | 'unavailable'>('loading')
+  const [sessionRetry, setSessionRetry] = useState(0)
+  const [notice, setNotice] = useState('')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const [logoutError, setLogoutError] = useState('')
   const [section, setSection] = useState(() => window.location.hash.slice(1) || 'dashboard')
   const [pathname, setPathname] = useState(() => window.location.pathname)
 
@@ -37,6 +37,23 @@ export function App() {
     setPathname(window.location.pathname)
     setSection(window.location.hash.slice(1) || 'dashboard')
   }
+
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' && session) {
+        sessionStorage.setItem('ledgerlyRecoveryUserId', session.user.id)
+        setRecoveryUserId(session.user.id)
+        navigate('/reset-password')
+      } else if (event === 'SIGNED_OUT' || (session && sessionStorage.getItem('ledgerlyRecoveryUserId') && sessionStorage.getItem('ledgerlyRecoveryUserId') !== session.user.id)) {
+        sessionStorage.removeItem('ledgerlyRecoveryUserId')
+        setRecoveryUserId('')
+      }
+      setToken(session?.access_token || '')
+      if (!session) setUser(null)
+      setAuthReady(true)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
 
   useEffect(() => {
     const onPopState = () => {
@@ -48,34 +65,83 @@ export function App() {
   }, [])
 
   useEffect(() => {
-    if (!token) return
+    if (!token || recoveryUserId) return
+    let active = true
+    setSessionState('loading')
     api<User>('/api/v1/auth/me', {}, token)
-      .then(setUser)
-      .catch(() => logout())
-  }, [token])
+      .then(account => { if (active) { setUser(account); setSessionState('ready') } })
+      .catch(reason => {
+        if (!active) return
+        if (reason instanceof ApiError && (reason.status === 401 || reason.status === 403)) {
+          void supabase.auth.signOut({ scope: 'local' })
+          setToken('')
+          setUser(null)
+          setNotice('Your session has expired. Please sign in again.')
+          navigate('/login')
+        } else {
+          setSessionState('unavailable')
+        }
+      })
+    return () => { active = false }
+  }, [token, sessionRetry, recoveryUserId])
 
   useEffect(() => {
-    if (token && ['/', '/login', '/register'].includes(pathname)) navigate('/app')
-  }, [token, pathname])
+    if (token && !recoveryUserId && ['/', '/login', '/register'].includes(pathname)) navigate('/app')
+  }, [token, pathname, recoveryUserId])
 
-  const authenticated = (response: AuthResponse) => {
-    localStorage.setItem('ledgerlyToken', response.accessToken)
-    setToken(response.accessToken)
-    setUser(response.user)
-    navigate('/app')
-  }
-
-  function logout() {
-    localStorage.removeItem('ledgerlyToken')
+  async function logout() {
+    if (loggingOut) return
+    setLoggingOut(true)
+    setLogoutError('')
+    try {
+      const result = await api<{ tokenRevoked?: boolean }>('/api/v1/auth/logout', { method: 'POST' }, token)
+      if (!result.tokenRevoked) throw new Error('The server did not confirm token revocation.')
+    } catch (reason) {
+      if (!(reason instanceof ApiError && (reason.status === 401 || reason.status === 403))) {
+        setLogoutError('Unable to sign out securely. Check your connection and try again.')
+        setLoggingOut(false)
+        return
+      }
+    }
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' })
+    if (signOutError) {
+      setLogoutError('Unable to sign out securely. Check your connection and try again.')
+      setLoggingOut(false)
+      return
+    }
     setToken('')
     setUser(null)
+    setNotice('')
+    setLoggingOut(false)
     navigate('/')
   }
 
+  if (!authReady) return <main className="empty-page-card" aria-live="polite"><p>Loading your account…</p></main>
+  if ((pathname === '/forgot-password' || pathname === '/reset-password' || recoveryUserId)) {
+    return <PasswordRecovery key={recoveryUserId ? 'reset' : pathname} mode={recoveryUserId || pathname === '/reset-password' ? 'reset' : 'request'}
+      recoveryReady={Boolean(token && recoveryUserId)} onNavigate={navigate} onCancel={logout} cancelling={loggingOut} cancelError={logoutError} onComplete={() => {
+        sessionStorage.removeItem('ledgerlyRecoveryUserId')
+        setRecoveryUserId('')
+        setNotice('Your password has been updated.')
+        navigate('/app')
+      }} />
+  }
   if (!token && (pathname === '/login' || pathname === '/register')) {
-    return <AuthScreen api={api} onAuthenticated={authenticated} initialMode={pathname === '/register' ? 'register' : 'login'} onNavigate={navigate} />
+    return <AuthScreen initialMode={pathname === '/register' ? 'register' : 'login'} onNavigate={navigate} notice={notice} />
   }
   if (!token) return <LandingPage onNavigate={navigate} />
+
+  if (sessionState !== 'ready') {
+    return <main className="empty-page-card" aria-live="polite">
+      {sessionState === 'loading' ? <p>Loading your account…</p> : <>
+        <h1>Unable to load your account</h1>
+        <p>Check your connection and try again. Your session has been kept on this device.</p>
+        <Button onClick={() => setSessionRetry(value => value + 1)}>Try again</Button>
+        <button className="text-link" type="button" disabled={loggingOut} onClick={logout}>{loggingOut ? 'Signing out…' : 'Sign out'}</button>
+        {logoutError ? <p className="form-error" role="alert">{logoutError}</p> : null}
+      </>}
+    </main>
+  }
 
   const userName = user ? `${user.firstName} ${user.lastName}` : 'Your account'
   return (
@@ -83,6 +149,7 @@ export function App() {
       {mobileOpen ? <button className="sidebar-backdrop" aria-label="Close navigation" onClick={() => setMobileOpen(false)} /> : null}
       <Sidebar
         onLogout={logout}
+        loggingOut={loggingOut}
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
         activeSection={section}
@@ -91,15 +158,17 @@ export function App() {
       <div className="main-column">
         <TopBar userName={userName} onMenu={() => setMobileOpen(true)} />
         <main className="page-content dashboard-content">
+          {notice ? <p className="form-success" role="status">{notice}</p> : null}
+          {logoutError ? <p className="form-error" role="alert">{logoutError}</p> : null}
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           {section === 'settings' ? (
             <AccountSettings user={user} token={token} api={api} onSaved={setUser} />
           ) : section === 'documents' ? (
-            <DocumentLibrary token={token} api={api} />
+            <DocumentLibrary key={user?.id} token={token} api={api} />
           ) : section === 'vendors' || section === 'categories' ? (
             <CustomerDataPage section={section} token={token} api={api} />
           ) : (
-            <Dashboard user={user} onNavigate={navigate} />
+            <Dashboard key={user?.id} user={user} token={token} onNavigate={navigate} />
           )}
         </main>
       </div>
@@ -107,8 +176,21 @@ export function App() {
   )
 }
 
-function Dashboard({ user, onNavigate }: { user: User | null; onNavigate: (path: string) => void }) {
+function Dashboard({ user, token, onNavigate }: { user: User | null; token: string; onNavigate: (path: string) => void }) {
   const firstName = user?.firstName || 'there'
+  const [usage, setUsage] = useState<UploadUsage | null>(null)
+  const [usageError, setUsageError] = useState(false)
+  const [usageRetry, setUsageRetry] = useState(0)
+  useEffect(() => {
+    let active = true
+    setUsage(null)
+    setUsageError(false)
+    api<unknown>('/api/v1/billing/personal/usage', {}, token)
+      .then(parseUploadUsage)
+      .then(result => { if (active) setUsage(result) })
+      .catch(() => { if (active) setUsageError(true) })
+    return () => { active = false }
+  }, [token, usageRetry])
   return (
     <>
       <div className="dashboard-heading">
@@ -119,12 +201,16 @@ function Dashboard({ user, onNavigate }: { user: User | null; onNavigate: (path:
         <div className="welcome-copy"><span className="welcome-label"><Sparkles size={14} /> A FRESH START</span><h2>Make your paperwork<br />work a little less.</h2><p>Bring your receipts and invoices together. Keep the original close, find what you need, and see your spending more clearly.</p><Button onClick={() => onNavigate('/app#documents')}>Upload a document <ArrowUpRight size={16} /></Button></div>
         <div className="welcome-art" aria-hidden="true"><div className="art-glow" /><div className="art-sheet sheet-back"><span /><span /><span /></div><div className="art-sheet sheet-front"><span className="art-receipt-icon"><FileImage size={20} /></span><span className="art-line" /><span className="art-line short" /><span className="art-line" /><span className="art-total"><i /> <b /></span></div><div className="art-sparkle sparkle-a">✳</div><div className="art-sparkle sparkle-b">✦</div><div className="art-sticker">YOUR<br />RECORDS,<br /><strong>IN FOCUS</strong></div></div>
       </section>
-      <section className="dashboard-section-heading"><div><p className="section-kicker">WHEN YOU’RE READY</p><h2>Your overview will grow with you.</h2></div><button className="text-link" onClick={() => onNavigate('/app#documents')}>Your documents <ArrowUpRight size={15} /></button></section>
-      <section className="dashboard-empty-grid">
-        <article className="empty-data-card"><div className="empty-data-top"><span className="small-icon blue"><Search size={17} /></span><span>SEARCH YOUR RECORDS</span></div><div className="empty-data-illustration"><div className="search-orb"><Search size={24} /></div><i /><i /><i /></div><h3>Find it when you need it.</h3><p>Your documents will be searchable by vendor, item, date, and amount.</p></article>
-        <article className="empty-data-card"><div className="empty-data-top"><span className="small-icon violet"><Sparkles size={17} /></span><span>SEE THE BIGGER PICTURE</span></div><div className="empty-data-illustration chart-illustration"><i /><i /><i /><i /><i /><i /><i /></div><h3>Understand where it goes.</h3><p>Once you have records, your spending trends and categories will take shape here.</p></article>
-        <article className="empty-data-card"><div className="empty-data-top"><span className="small-icon peach"><FileText size={17} /></span><span>KEEP THE DETAILS</span></div><div className="empty-data-illustration document-illustration"><span><FileText size={20} /></span><i /><i /><b /></div><h3>Originals stay connected.</h3><p>Keep source documents close to the details you’ve reviewed and saved.</p></article>
+      <section className="empty-data-card" aria-label="Document upload tracking">
+        <h2>Document uploads</h2>
+        {usageError ? <><p role="alert">Unable to load receipt usage.</p><Button variant="secondary" onClick={() => setUsageRetry(value => value + 1)}>Retry</Button></> :
+          !usage ? <p role="status">Loading receipt usage…</p> : <>
+            <p>{usage.historyComplete ? 'Tracked uploads' : 'At least'}: <strong>{usage.trackedUploads}</strong></p>
+            {!usage.historyComplete ? <p>Earlier deleted documents may not be included in this count.</p> : null}
+            <p>This counts document uploads, not Free-plan receipt usage. {usage.limitEnforced ? 'A receipt limit is enforced.' : 'The planned Free limit is not yet enforced.'}</p>
+          </>}
       </section>
+      <SpendingDashboard token={token} />
       <p className="dashboard-privacy"><span><Sparkles size={14} /></span> A personal space, just for your records. Your information stays yours.</p>
     </>
   )

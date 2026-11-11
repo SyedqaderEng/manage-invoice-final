@@ -28,6 +28,7 @@ export function CustomerDataPage({ section, token, api }: { section: 'vendors' |
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [message, setMessage] = useState('')
+  const [editing, setEditing] = useState<Vendor | Category | null>(null)
 
   const refresh = useCallback(async () => {
     setError('')
@@ -50,6 +51,7 @@ export function CustomerDataPage({ section, token, api }: { section: 'vendors' |
   }, [api, isVendors, section, token])
 
   useEffect(() => { void refresh() }, [refresh])
+  useEffect(() => { setEditing(null); setMessage(''); setLoading(true) }, [section])
 
   const create = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -69,15 +71,35 @@ export function CustomerDataPage({ section, token, api }: { section: 'vendors' |
     setMessage('')
     setSaving(true)
     try {
-      await api(isVendors ? '/api/v1/vendors' : '/api/v1/categories', {
-        method: 'POST',
+      const base = isVendors ? '/api/v1/vendors' : '/api/v1/categories'
+      await api(editing ? `${base}/${editing.id}` : base, {
+        method: editing ? 'PATCH' : 'POST',
         body: JSON.stringify(payload),
       }, token)
       formElement.reset()
-      setMessage(isVendors ? 'Vendor added.' : 'Category added.')
+      setMessage(`${isVendors ? 'Vendor' : 'Category'} ${editing ? 'updated' : 'added'}.`)
+      setEditing(null)
       await refresh()
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : `Unable to add ${isVendors ? 'vendor' : 'category'}`)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const deactivate = async (item: Vendor | Category) => {
+    const name = 'displayName' in item ? item.displayName : item.name
+    if (!window.confirm(`Deactivate ${name}? Existing records will be preserved.`)) return
+    setError('')
+    setMessage('')
+    setSaving(true)
+    try {
+      await api(`/api/v1/${isVendors ? 'vendors' : 'categories'}/${item.id}`, { method: 'DELETE' }, token)
+      if (editing?.id === item.id) setEditing(null)
+      setMessage(`${isVendors ? 'Vendor' : 'Category'} deactivated.`)
+      await refresh()
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to deactivate')
     } finally {
       setSaving(false)
     }
@@ -91,26 +113,27 @@ export function CustomerDataPage({ section, token, api }: { section: 'vendors' |
         <p>{isVendors ? 'Keep track of the stores and service providers in your records.' : 'Create categories to organize your personal spending.'}</p>
       </header>
       <div className="customer-data-layout">
-        <form className="customer-data-form" onSubmit={create}>
-          <div className="customer-data-form-title">{isVendors ? <Store size={18} /> : <Tags size={18} />}<strong>Add {isVendors ? 'a vendor' : 'a category'}</strong></div>
+        <form key={`${section}-${editing?.id || 'new'}`} className="customer-data-form" onSubmit={create}>
+          <div className="customer-data-form-title">{isVendors ? <Store size={18} /> : <Tags size={18} />}<strong>{editing ? 'Edit' : 'Add'} {isVendors ? 'a vendor' : 'a category'}</strong></div>
           {isVendors ? (
             <>
-              <label className="field">Vendor name<input name="displayName" required maxLength={255} /></label>
-              <label className="field">Email (optional)<input name="email" type="email" maxLength={320} /></label>
-              <label className="field">Phone (optional)<input name="phone" maxLength={50} /></label>
-              <label className="field">Address (optional)<textarea name="address" maxLength={2000} rows={3} /></label>
-              <label className="field">Default category (optional)<select name="defaultCategoryId" defaultValue=""><option value="">No default</option>{categories.map(category => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
+              <label className="field">Vendor name<input name="displayName" required maxLength={255} defaultValue={editing && 'displayName' in editing ? editing.displayName : ''} /></label>
+              <label className="field">Email (optional)<input name="email" type="email" maxLength={320} defaultValue={editing && 'email' in editing ? editing.email || '' : ''} /></label>
+              <label className="field">Phone (optional)<input name="phone" maxLength={50} defaultValue={editing && 'phone' in editing ? editing.phone || '' : ''} /></label>
+              <label className="field">Address (optional)<textarea name="address" maxLength={2000} rows={3} defaultValue={editing && 'address' in editing ? editing.address || '' : ''} /></label>
+              <label className="field">Default category (optional)<select name="defaultCategoryId" defaultValue={editing && 'defaultCategoryId' in editing ? editing.defaultCategoryId || '' : ''}><option value="">No default</option>{categories.map(category => <option value={category.id} key={category.id}>{category.name}</option>)}</select></label>
             </>
           ) : (
             <>
-              <label className="field">Category name<input name="name" required maxLength={100} /></label>
-              <label className="field">Description (optional)<textarea name="description" maxLength={2000} rows={3} /></label>
-              <label className="field">Color (optional)<input name="color" type="color" defaultValue="#6375d5" /></label>
+              <label className="field">Category name<input name="name" required maxLength={100} defaultValue={editing && 'name' in editing ? editing.name : ''} /></label>
+              <label className="field">Description (optional)<textarea name="description" maxLength={2000} rows={3} defaultValue={editing && 'description' in editing ? editing.description || '' : ''} /></label>
+              <label className="field">Color (optional)<input name="color" type="color" defaultValue={editing && 'color' in editing ? editing.color || '#6375d5' : '#6375d5'} /></label>
             </>
           )}
           {error ? <p className="form-error" role="alert">{error}</p> : null}
           {message ? <p className="form-success" role="status">{message}</p> : null}
-          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : `Add ${isVendors ? 'vendor' : 'category'}`}</Button>
+          <Button type="submit" disabled={saving}>{saving ? 'Saving…' : editing ? 'Save changes' : `Add ${isVendors ? 'vendor' : 'category'}`}</Button>
+          {editing ? <button type="button" className="text-link" onClick={() => setEditing(null)}>Cancel editing</button> : null}
         </form>
 
         <section className="customer-data-list" aria-label={isVendors ? 'Your vendors' : 'Your categories'}>
@@ -119,8 +142,8 @@ export function CustomerDataPage({ section, token, api }: { section: 'vendors' |
             <div className="customer-data-items">
               {(isVendors ? vendors : categories).length ? (
                 isVendors
-                  ? vendors.map(vendor => <article className="customer-data-item" key={vendor.id}><span className="customer-data-item-icon"><Store size={17} /></span><div><strong>{vendor.displayName}</strong><small>{vendor.email || vendor.phone || 'No contact details'}</small><small>{categories.find(category => category.id === vendor.defaultCategoryId)?.name || 'No default category'}</small></div></article>)
-                  : categories.map(category => <article className="customer-data-item" key={category.id}><span className="customer-data-item-icon" style={category.color ? { color: category.color } : undefined}><Tags size={17} /></span><div><strong>{category.name}</strong><small>{category.description || 'Expense category'}</small></div></article>)
+                  ? vendors.map(vendor => <article className="customer-data-item" key={vendor.id}><span className="customer-data-item-icon"><Store size={17} /></span><div><strong>{vendor.displayName}</strong><small>{vendor.email || vendor.phone || 'No contact details'}</small><small>{categories.find(category => category.id === vendor.defaultCategoryId)?.name || 'No default category'}</small></div><div className="customer-data-actions"><button type="button" className="text-link" disabled={saving} onClick={() => setEditing(vendor)}>Edit</button><button type="button" className="text-link" disabled={saving} onClick={() => void deactivate(vendor)}>Deactivate</button></div></article>)
+                  : categories.map(category => <article className="customer-data-item" key={category.id}><span className="customer-data-item-icon" style={category.color ? { color: category.color } : undefined}><Tags size={17} /></span><div><strong>{category.name}</strong><small>{category.description || 'Expense category'}</small></div><div className="customer-data-actions"><button type="button" className="text-link" disabled={saving} onClick={() => setEditing(category)}>Edit</button><button type="button" className="text-link" disabled={saving} onClick={() => void deactivate(category)}>Deactivate</button></div></article>)
               ) : <div className="document-empty"><p>No {isVendors ? 'vendors' : 'categories'} yet. Add one to get started.</p></div>}
             </div>
           )}

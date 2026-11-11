@@ -2,6 +2,7 @@ import { FileText, LayoutDashboard, LogOut, Settings, ScanLine, Store, Tags } fr
 
 interface SidebarProps {
   onLogout: () => void
+  loggingOut: boolean
   mobileOpen: boolean
   onClose: () => void
   activeSection?: string
@@ -35,7 +36,7 @@ export function Sidebar(props: SidebarProps) {
           <button className={`nav-item ${props.activeSection === 'settings' ? 'active' : ''}`} onClick={() => { props.onNavigate('settings'); props.onClose() }}>
             <Settings size={18} aria-hidden="true" /><span>Settings</span>
           </button>
-          <button className="nav-item nav-button" onClick={props.onLogout}><LogOut size={18} aria-hidden="true" /><span>Sign out</span></button>
+          <button className="nav-item nav-button" disabled={props.loggingOut} onClick={props.onLogout}><LogOut size={18} aria-hidden="true" /><span>{props.loggingOut ? 'Signing out…' : 'Sign out'}</span></button>
         </nav>
         <div className="sidebar-private"><span><ScanLine size={15} /></span><p><strong>Your space</strong><small>Private by design</small></p></div>
       </div>

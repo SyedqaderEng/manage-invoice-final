@@ -1,23 +1,52 @@
+# Runtime configuration. Supabase is the only backing service:
+#  - Postgres database (schema "ledgerly")
+#  - Storage bucket for original documents
+#  - Auth for sign-up / sign-in (the API verifies Supabase access tokens)
+# Values come from environment variables or git-ignored local configuration files.
+# The Windows Supabase startup script can generate .env.supabase for Eclipse.
 spring:
   application:
-    name: saas-starter-api
+    name: manage-invoice
+  config:
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:.env[.properties]
+      - optional:file:../.env.supabase[.properties]
+      - optional:file:.env.supabase[.properties]
   servlet:
     multipart:
       max-file-size: 25MB
       max-request-size: 26MB
   datasource:
-    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/saas_starter}
-    username: ${DATABASE_USERNAME:saas_starter}
-    password: ${DATABASE_PASSWORD:saas_starter}
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USERNAME}
+    password: ${SUPABASE_DB_PASSWORD}
   jpa:
     open-in-view: false
     hibernate:
       ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: ledgerly
   flyway:
     enabled: true
+    schemas: ledgerly
+    default-schema: ledgerly
+
+server:
+  address: ${SERVER_ADDRESS:127.0.0.1}
+  port: ${SERVER_PORT:8094}
+
 security:
-  jwt:
-    secret: ${JWT_SECRET}
+  supabase:
+    url: ${SUPABASE_URL}
+    publishable-key: ${SUPABASE_PUBLISHABLE_KEY}
+
+storage:
+  supabase:
+    service-key: ${SUPABASE_SERVICE_ROLE_KEY}
+    bucket: ${SUPABASE_STORAGE_BUCKET:ledgerly-documents}
+
 management:
   endpoints:
     web:
@@ -33,21 +62,11 @@ springdoc:
   swagger-ui:
     path: /api/v1/docs
 
-storage:
-  local:
-    root: ${STORAGE_LOCAL_ROOT:./storage}
+ocr:
+  tesseract-command: ${OCR_TESSERACT_COMMAND:tesseract}
 
-billing:
-  stripe:
-    secret-key: ${STRIPE_SECRET_KEY:}
-    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
-    success-url: ${STRIPE_SUCCESS_URL:http://localhost:5173/app#billing?success=true}
-    cancel-url: ${STRIPE_CANCEL_URL:http://localhost:5173/app#billing?cancelled=true}
-    return-url: ${STRIPE_RETURN_URL:http://localhost:5173/app#billing}
-    prices:
-      starter-monthly: ${STRIPE_PRICE_STARTER_MONTHLY:}
-      starter-yearly: ${STRIPE_PRICE_STARTER_YEARLY:}
-      pro-monthly: ${STRIPE_PRICE_PRO_MONTHLY:}
-      pro-yearly: ${STRIPE_PRICE_PRO_YEARLY:}
-      team-monthly: ${STRIPE_PRICE_TEAM_MONTHLY:}
-      team-yearly: ${STRIPE_PRICE_TEAM_YEARLY:}
+receipt:
+  ai:
+    enabled: ${RECEIPT_AI_ENABLED:false}
+    port: ${RECEIPT_AI_PORT:11435}
+    model: ${RECEIPT_AI_MODEL:qwen2.5vl:3b}

@@ -366,6 +366,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .document-preview-close:hover { background: #f0f2f7; }
 .document-preview iframe { width: 100%; flex: 1; border: 0; }
 .document-preview img { width: 100%; height: 0; min-height: 0; flex: 1; object-fit: contain; background: #f5f6f9; }
+.document-ocr p { margin: 18px; color: #64728a; font-size: 13px; }
+.document-ocr pre { flex: 1; overflow: auto; margin: 0 18px 18px; padding: 18px; border-radius: 8px; background: #f5f6f9; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; }
+.receipt-editor { width: min(1200px, 100%); max-height: 92vh; display: flex; flex-direction: column; border-radius: 12px; background: white; overflow: hidden; }
+.receipt-editor > header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; border-bottom: 1px solid #e8ebf1; }
+.receipt-editor h2, .receipt-editor h3 { margin: 0; color: #34415b; }
+.receipt-editor header p { margin: 4px 0 0; color: #7e899d; font-size: 12px; }
+.receipt-editor-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); min-height: 0; overflow: auto; }
+.receipt-original, .receipt-fields { padding: 20px; }
+.receipt-original { background: #f5f6f9; }
+.receipt-original img, .receipt-original iframe { width: 100%; height: 65vh; margin-top: 12px; object-fit: contain; border: 0; }
+.receipt-fields { overflow-y: auto; max-height: 80vh; }
+.receipt-edit-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.receipt-fields > p { color: #64728a; font-size: 13px; line-height: 1.5; }
+.receipt-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 14px 0; }
+.receipt-fields .field { display: grid; gap: 5px; font-size: 12px; color: #536078; }
+.receipt-fields .field input { min-width: 0; width: 100%; padding: 9px; border: 1px solid #dce1ea; border-radius: 7px; }
+.receipt-item { margin: 12px 0; padding: 12px; border: 1px solid #e6e9f0; border-radius: 8px; }
+.receipt-item > .field { margin-bottom: 10px; }
+.receipt-actions { display: flex; gap: 10px; margin-top: 18px; }
+@media (max-width: 750px) { .receipt-editor-body { display: block; } .receipt-original img, .receipt-original iframe { height: 40vh; } .receipt-fields { max-height: none; overflow: visible; } }
 .customer-data-layout { display: grid; grid-template-columns: minmax(270px, 360px) minmax(0, 1fr); align-items: start; gap: 20px; }
 .customer-data-form, .customer-data-list { padding: 21px; border: 1px solid #e6e9f0; border-radius: 12px; background: white; }
 .customer-data-form { display: grid; gap: 14px; }
@@ -380,6 +400,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 .customer-data-item { min-height: 65px; display: flex; align-items: center; gap: 11px; padding: 10px; border: 1px solid #edf0f5; border-radius: 9px; }
 .customer-data-item-icon { width: 36px; height: 36px; display: grid; flex: 0 0 auto; place-items: center; border-radius: 9px; background: #f2f4ff; color: #6879d0; }
 .customer-data-item > div { min-width: 0; display: grid; gap: 3px; }
+.customer-data-item > .customer-data-actions { margin-left: auto; display: flex; flex-wrap: wrap; gap: 10px; }
 .customer-data-item strong { overflow: hidden; color: #34415b; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
 .customer-data-item small { overflow: hidden; color: #8993a5; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .customer-data-items > .document-empty { padding: 22px; }
@@ -497,3 +518,14 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
+.spending-overview { display: grid; gap: 1rem; margin-top: 2rem; }
+.spending-overview > .field { max-width: 16rem; }
+.spending-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
+.spending-card { background: white; border: 1px solid #e3e7ed; border-radius: 12px; padding: 1.25rem; min-width: 0; }
+.spending-bars { list-style: none; padding: 0; display: grid; gap: .75rem; }
+.spending-bars li { display: grid; grid-template-columns: minmax(5rem, 1fr) 2fr auto; gap: .75rem; align-items: center; }
+.spending-track { background: #e7edf5; border-radius: 8px; height: .65rem; overflow: hidden; }
+.spending-track div { height: 100%; background: #6959ce; }
+.spending-table-wrap { overflow-x: auto; }
+.spending-card table { width: 100%; border-collapse: collapse; text-align: left; }
+.spending-card th, .spending-card td { border-bottom: 1px solid #e3e7ed; padding: .65rem; }

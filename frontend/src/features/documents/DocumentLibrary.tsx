@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react'
-import { Download, Eye, FileText, Plus, Trash2, Upload, X } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Download, Eye, FileText, Plus, ScanLine, Trash2, Upload, X } from 'lucide-react'
 import { Button } from '../../components/ui/Button'
+import { mergePage } from './pagination'
+import { ReceiptEditor, type ReceiptRecord } from './ReceiptEditor'
+import { ApiError, ApiNetworkError } from '../../api'
 
 interface DocumentRecord {
   id: string
@@ -31,23 +34,42 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
   const [pageNumber, setPageNumber] = useState(0)
   const [refreshKey, setRefreshKey] = useState(0)
   const [files, setFiles] = useState<File[]>([])
+  const fileInput = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState('')
   const [deletingId, setDeletingId] = useState('')
   const [error, setError] = useState('')
   const [preview, setPreview] = useState<{ document: DocumentRecord; url: string } | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
+  const [ocrLoadingId, setOcrLoadingId] = useState('')
+  const [ocrResult, setOcrResult] = useState<{ document: DocumentRecord; text: string; processedAt: string } | null>(null)
+  const [receipts, setReceipts] = useState<{ document: DocumentRecord; record: ReceiptRecord }[]>([])
+  const receipt = receipts[0]
+  const [receiptLoadingId, setReceiptLoadingId] = useState('')
+  const [manualDocument, setManualDocument] = useState<DocumentRecord | null>(null)
 
   useEffect(() => {
     let active = true
     setLoading(true)
+    setListError('')
     api<DocumentPage>(`/api/v1/documents?page=${pageNumber}&size=20`, {}, token)
-      .then(result => { if (active) setPage(result) })
-      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Unable to load documents') })
+      .then(result => {
+        if (active) setPage(previous => pageNumber === 0 || !previous ? result : {
+          ...result, content: mergePage(previous.content, result.content),
+        })
+      })
+      .catch(reason => { if (active) setListError(reason instanceof Error ? reason.message : 'Unable to load documents') })
       .finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [api, pageNumber, refreshKey, token])
+
+  const reload = () => {
+    setPage(null)
+    setPageNumber(0)
+    setRefreshKey(value => value + 1)
+  }
 
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview.url)
@@ -69,29 +91,66 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
     setError('')
     setUploading(true)
     let uploadedCount = 0
+    const processingFailures: string[] = []
     try {
       for (const [index, file] of files.entries()) {
         setUploadProgress(`Uploading ${index + 1} of ${files.length}: ${file.name}`)
         const body = new FormData()
         body.append('file', file)
-        await api<DocumentRecord>('/api/v1/documents', { method: 'POST', body }, token)
+        const document = await api<DocumentRecord>('/api/v1/documents', { method: 'POST', body }, token)
         uploadedCount += 1
+        setUploadProgress(`Analyzing ${index + 1} of ${files.length}: ${file.name}`)
+        try {
+          const record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, { method: 'POST' }, token)
+          setReceipts(current => [...current, { document, record }])
+        } catch (reason) {
+          processingFailures.push(`${file.name}: ${reason instanceof Error ? reason.message : 'Recognition failed'}`)
+        }
       }
       setFiles([])
-      setUploadProgress(`${uploadedCount} document${uploadedCount === 1 ? '' : 's'} uploaded.`)
+      if (fileInput.current) fileInput.current.value = ''
+      setUploadProgress(`${uploadedCount} document${uploadedCount === 1 ? '' : 's'} uploaded.${processingFailures.length ? ' Some records need attention; open them to retry or enter details manually.' : ' Digital drafts are ready to review.'}`)
+      if (processingFailures.length) setError(processingFailures.join(' '))
     } catch (reason) {
       if (uploadedCount) {
         setFiles(files.slice(uploadedCount))
+        if (fileInput.current) fileInput.current.value = ''
         setUploadProgress(`${uploadedCount} of ${files.length} files uploaded; the remaining files are still selected.`)
+      } else {
+        setUploadProgress('')
       }
-      setError(reason instanceof Error ? reason.message : 'Unable to upload documents')
+      const message = reason instanceof ApiNetworkError
+        ? `${reason.message} The upload outcome is unknown; refresh the document list before retrying.`
+        : reason instanceof Error ? reason.message : 'Unable to upload documents'
+      setError([...processingFailures, message].join(' '))
     } finally {
       setUploading(false)
-      if (uploadedCount) {
-        setPageNumber(0)
-        setRefreshKey(value => value + 1)
-      }
+      if (uploadedCount) reload()
     }
+  }
+
+  const openReceipt = async (document: DocumentRecord, manual = false) => {
+    if (receiptLoadingId) return
+    setError('')
+    setManualDocument(null)
+    setReceiptLoadingId(document.id)
+    try {
+      let record: ReceiptRecord
+      if (manual) {
+        record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record?recognize=false`, { method: 'POST' }, token)
+      } else {
+        try {
+          record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, {}, token)
+        } catch (reason) {
+          if (!(reason instanceof ApiError && reason.status === 404)) throw reason
+          record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, { method: 'POST' }, token)
+        }
+      }
+      setReceipts(current => [...current, { document, record }])
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to open the digital record.')
+      if (!manual && !(reason instanceof ApiError && reason.status === 409)) setManualDocument(document)
+    } finally { setReceiptLoadingId('') }
   }
 
   const fetchOriginal = async (document: DocumentRecord, mode: 'preview' | 'download') => {
@@ -122,16 +181,30 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
   }
 
   const remove = async (document: DocumentRecord) => {
-    if (!window.confirm(`Permanently delete "${document.filename}" and its stored original?`)) return
+    if (!window.confirm(`Permanently delete "${document.filename}", its stored original and digital record?`)) return
     setError('')
     setDeletingId(document.id)
     try {
       await api<void>(`/api/v1/documents/${document.id}`, { method: 'DELETE' }, token)
-      setRefreshKey(value => value + 1)
+      reload()
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'Unable to delete this document')
     } finally {
       setDeletingId('')
+    }
+  }
+
+  const readText = async (document: DocumentRecord, process: boolean) => {
+    setError('')
+    setOcrLoadingId(document.id)
+    try {
+      const result = await api<{ text: string; processedAt: string }>(
+        `/api/v1/documents/${document.id}/ocr`, { method: process ? 'POST' : 'GET' }, token)
+      setOcrResult({ document, ...result })
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to read document text')
+    } finally {
+      setOcrLoadingId('')
     }
   }
 
@@ -145,7 +218,7 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
         <div className="upload-copy"><span className="upload-icon"><Upload size={19} /></span><div><strong>Add receipts and invoices</strong><p>PDF, JPEG, PNG, or WebP · up to 25 MB each</p></div></div>
         <label className="document-file-picker">
           <span><Plus size={16} /> Choose files</span>
-          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" capture="environment" multiple onChange={event => {
+          <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp" capture="environment" multiple disabled={uploading} onChange={event => {
             setFiles(Array.from(event.currentTarget.files || []))
             setError('')
             setUploadProgress('')
@@ -156,16 +229,20 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
       </form>
 
       {error ? <p className="document-message error" role="alert">{error}</p> : null}
+      {manualDocument ? <p className="document-message">Recognition did not complete. <button type="button" className="text-link" onClick={() => void openReceipt(manualDocument, true)}>Create a blank record instead</button></p> : null}
       {uploadProgress ? <p className="document-message" role="status">{uploadProgress}</p> : null}
 
-      <div className="document-list-heading"><div><h2>Recent uploads</h2><p>{page?.totalElements ?? 0} document{page?.totalElements === 1 ? '' : 's'}</p></div></div>
-      {loading ? <p className="document-empty">Loading your documents…</p> : page?.content.length ? (
+      <div className="document-list-heading"><div><h2>Recent uploads</h2>{page ? <p>{page.totalElements} document{page.totalElements === 1 ? '' : 's'}</p> : null}</div><Button variant="secondary" disabled={loading} onClick={reload}>Refresh list</Button></div>
+      {page?.content.length ? (
         <div className="document-list">
           {page.content.map(document => (
             <article className="document-row" key={document.id}>
               <span className="document-file-icon"><FileText size={20} /></span>
               <div className="document-description"><strong>{document.filename}</strong><span>{new Date(document.uploadedAt).toLocaleDateString()} · {formatSize(document.fileSize)}</span><small>{document.processingStatus === 'UPLOADED' ? 'Original saved' : document.processingStatus}</small></div>
               <div className="document-actions">
+                <button type="button" className="document-action" disabled={!!receiptLoadingId} onClick={() => void openReceipt(document)} aria-label={`Review digital record for ${document.filename}`}><FileText size={16} /><span>{receiptLoadingId === document.id ? 'Opening…' : 'Digital record'}</span></button>
+                <button type="button" className="document-action" disabled={!!ocrLoadingId} onClick={() => void readText(document, true)} aria-label={`Recognize text in ${document.filename}`}><ScanLine size={16} /><span>{ocrLoadingId === document.id ? 'Reading…' : 'Read text'}</span></button>
+                <button type="button" className="document-action" disabled={!!ocrLoadingId} onClick={() => void readText(document, false)} aria-label={`View saved text for ${document.filename}`}><span>Saved text</span></button>
                 <button type="button" className="document-action" disabled={previewLoading} onClick={() => void fetchOriginal(document, 'preview')} aria-label={`View ${document.filename}`}><Eye size={16} /><span>View</span></button>
                 <button type="button" className="document-action" onClick={() => void fetchOriginal(document, 'download')} aria-label={`Download ${document.filename}`}><Download size={16} /><span>Download</span></button>
                 <button type="button" className="document-action danger" disabled={deletingId === document.id} onClick={() => void remove(document)} aria-label={`Delete ${document.filename}`}><Trash2 size={16} /><span>{deletingId === document.id ? 'Deleting…' : 'Delete'}</span></button>
@@ -173,10 +250,12 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
             </article>
           ))}
         </div>
-      ) : page ? (
+      ) : page && !loading && !listError ? (
         <div className="document-empty"><span className="document-empty-icon"><FileText size={22} /></span><h2>Your library is ready</h2><p>Upload a receipt or invoice to keep its original safe and easy to find.</p></div>
       ) : null}
-      {page && page.number + 1 < page.totalPages ? <Button variant="secondary" className="document-load-more" onClick={() => setPageNumber(value => value + 1)}>Load more</Button> : null}
+      {loading ? <p className="document-empty" role="status">Loading your documents…</p> : null}
+      {listError ? <div className="document-message"><p role="alert">{listError}</p><Button variant="secondary" onClick={() => setRefreshKey(value => value + 1)}>Retry loading documents</Button></div> : null}
+      {!loading && !listError && page && page.number + 1 < page.totalPages ? <Button variant="secondary" className="document-load-more" onClick={() => setPageNumber(page.number + 1)}>Load more</Button> : null}
 
       {preview ? (
         <div className="document-preview-backdrop" role="presentation" onClick={event => { if (event.target === event.currentTarget) setPreview(null) }}>
@@ -186,6 +265,18 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
           </section>
         </div>
       ) : null}
+      {ocrResult ? (
+        <div className="document-preview-backdrop" role="presentation" onClick={event => { if (event.target === event.currentTarget) setOcrResult(null) }}>
+          <section className="document-preview document-ocr" role="dialog" aria-modal="true" aria-label={`Recognized text for ${ocrResult.document.filename}`}>
+            <header><strong>Recognized text: {ocrResult.document.filename}</strong><button type="button" className="document-preview-close" aria-label="Close recognized text" onClick={() => setOcrResult(null)}><X size={19} /></button></header>
+            <p>OCR runs locally and can make mistakes. This is unverified text, not a confirmed digital invoice.</p>
+            <pre>{ocrResult.text}</pre>
+          </section>
+        </div>
+      ) : null}
+      {receipt ? <ReceiptEditor key={receipt.document.id} documentId={receipt.document.id} filename={receipt.document.filename}
+        contentUrl={receipt.document.contentUrl} mimeType={receipt.document.mimeType}
+        initial={receipt.record} token={token} api={api} queued={receipts.length - 1} onClose={() => setReceipts(current => current.slice(1))} /> : null}
     </section>
   )
 }
