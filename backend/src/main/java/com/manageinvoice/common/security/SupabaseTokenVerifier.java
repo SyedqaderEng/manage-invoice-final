@@ -84,8 +84,9 @@ public class SupabaseTokenVerifier {
                             return Optional.empty();
                         }
                         JsonNode metadata = user.path("user_metadata");
-                        return Optional.of(new Identity(id, email, name(metadata.path("first_name")),
-                            name(metadata.path("last_name")), expiration));
+                        return Optional.of(new Identity(id, email, name(metadata.path("first_name"), metadata.path("given_name")),
+                            name(metadata.path("last_name"), metadata.path("family_name")),
+                            displayName(metadata.path("full_name"), metadata.path("name")), expiration));
                     } catch (IOException | IllegalArgumentException ex) {
                         throw new VerificationUnavailableException("Invalid Supabase Auth response", ex);
                     }
@@ -95,12 +96,19 @@ public class SupabaseTokenVerifier {
         }
     }
 
-    private static String name(JsonNode value) {
+    private static String name(JsonNode value, JsonNode fallback) {
         String text = value.isTextual() ? value.asText().trim() : "";
+        if (text.isEmpty() && fallback.isTextual()) text = fallback.asText().trim();
         return text.length() <= 100 ? text : text.substring(0, 100);
     }
 
-    public record Identity(UUID id, String email, String firstName, String lastName, Instant expiresAt) {}
+    private static String displayName(JsonNode value, JsonNode fallback) {
+        String text = value.isTextual() ? value.asText().trim() : "";
+        if (text.isEmpty() && fallback.isTextual()) text = fallback.asText().trim();
+        return text.length() <= 200 ? text : text.substring(0, 200);
+    }
+
+    public record Identity(UUID id, String email, String firstName, String lastName, String displayName, Instant expiresAt) {}
 
     public static class VerificationUnavailableException extends RuntimeException {
         VerificationUnavailableException(String message) { super(message); }

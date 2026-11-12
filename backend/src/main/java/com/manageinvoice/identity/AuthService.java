@@ -23,13 +23,14 @@ public class AuthService {
     @Transactional
     public UserResponse updateProfile(UUID id, ProfileRequest request) {
         User user = findRequired(id);
-        user.setFirstName(request.firstName().trim());
-        user.setLastName(request.lastName().trim());
+        user.setFirstName(request.firstName() == null ? null : request.firstName().trim());
+        user.setLastName(request.lastName() == null ? null : request.lastName().trim());
+        if (request.displayName() != null) user.setDisplayName(request.displayName().trim());
         return new UserResponse(user);
     }
 
-    public record ProfileRequest(String firstName, String lastName) {}
-    public record UserResponse(UUID id, String email, String firstName, String lastName) {
-        public UserResponse(User user) { this(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName()); }
+    public record ProfileRequest(String firstName, String lastName, String displayName) {}
+    public record UserResponse(UUID id, String email, String firstName, String lastName, String displayName) {
+        public UserResponse(User user) { this(user.getId(), user.getEmail(), user.getFirstName(), user.getLastName(), user.getDisplayName()); }
     }
 }

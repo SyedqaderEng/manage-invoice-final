@@ -36,6 +36,6 @@ public class TestSupabaseTokenVerifier extends SupabaseTokenVerifier {
     public Optional<Identity> verify(String token) {
         if (token == null || !token.startsWith(PREFIX) || token.length() == PREFIX.length()) return Optional.empty();
         String email = token.substring(PREFIX.length());
-        return Optional.of(new Identity(userIdFor(email), email, "Test", "User", Instant.now().plusSeconds(3600)));
+        return Optional.of(new Identity(userIdFor(email), email, "Test", "User", "Test User", Instant.now().plusSeconds(3600)));
     }
 }

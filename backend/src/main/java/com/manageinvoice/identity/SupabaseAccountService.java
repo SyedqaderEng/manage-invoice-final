@@ -28,6 +28,7 @@ public class SupabaseAccountService {
                     created.setEmail(identity.email().trim().toLowerCase(Locale.ROOT));
                     created.setFirstName(identity.firstName());
                     created.setLastName(identity.lastName());
+                    created.setDisplayName(identity.displayName().isBlank() ? null : identity.displayName());
                     return users.saveAndFlush(created);
                 });
             } catch (DataIntegrityViolationException ex) {
@@ -37,6 +38,13 @@ public class SupabaseAccountService {
         }
         if (user == null) {
             throw new IllegalStateException("Account creation returned no user");
+        }
+        if (user.getDisplayName() == null && !identity.displayName().isBlank()) {
+            user = transactions.execute(status -> {
+                User existing = users.findByIdForUpdate(identity.id()).orElseThrow();
+                if (existing.getDisplayName() == null) existing.setDisplayName(identity.displayName());
+                return existing;
+            });
         }
         return user.getStatus() == UserStatus.ACTIVE;
     }

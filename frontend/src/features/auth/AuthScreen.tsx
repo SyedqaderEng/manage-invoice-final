@@ -16,6 +16,23 @@ export function AuthScreen({ initialMode, onNavigate, notice }: AuthScreenProps)
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState('')
 
+  const signInWithGoogle = async () => {
+    if (submitting) return
+    setError('')
+    setSuccess('')
+    setSubmitting(true)
+    try {
+      const { error: authError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: `${window.location.origin}/app` },
+      })
+      if (authError) throw authError
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Unable to sign in with Google.')
+      setSubmitting(false)
+    }
+  }
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (submitting) return
@@ -83,6 +100,7 @@ export function AuthScreen({ initialMode, onNavigate, notice }: AuthScreenProps)
             {success ? <p className="form-success" role="status">{success}</p> : null}
             {error ? <p className="form-error" role="alert">{error}</p> : null}
             <Button type="submit" disabled={submitting} icon={<ArrowRight size={18} />}>{submitting ? 'Please wait' : mode === 'login' ? 'Sign in' : 'Create account'}</Button>
+            <Button type="button" variant="secondary" disabled={submitting} onClick={signInWithGoogle}>Continue with Google</Button>
             {mode === 'login' ? <button className="text-link" type="button" disabled={submitting} onClick={() => onNavigate('/forgot-password')}>Forgot password?</button> : null}
           </form>
         </div>

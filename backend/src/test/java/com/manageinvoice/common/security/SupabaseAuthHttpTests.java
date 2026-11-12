@@ -33,7 +33,7 @@ class SupabaseAuthHttpTests {
     void verifiedIdentityIsProvisionedAndRevokedWithoutAcceptingLocalLogin() {
         UUID id = UUID.randomUUID();
         String email = id + "@example.com";
-        var identity = new SupabaseTokenVerifier.Identity(id, email, "Test", "Person", Instant.now().plusSeconds(3600));
+        var identity = new SupabaseTokenVerifier.Identity(id, email, "Test", "Person", "Test Person", Instant.now().plusSeconds(3600));
         when(verifier.verify(anyString())).thenReturn(Optional.empty());
         when(verifier.verify("verified-token")).thenReturn(Optional.of(identity));
 
@@ -65,9 +65,9 @@ class SupabaseAuthHttpTests {
     void sameEmailDoesNotLinkDifferentSupabaseAccounts() {
         String email = UUID.randomUUID() + "@example.com";
         when(verifier.verify("first-identity")).thenReturn(Optional.of(new SupabaseTokenVerifier.Identity(
-            UUID.randomUUID(), email, "First", "Person", Instant.now().plusSeconds(3600))));
+            UUID.randomUUID(), email, "First", "Person", "First Person", Instant.now().plusSeconds(3600))));
         when(verifier.verify("second-identity")).thenReturn(Optional.of(new SupabaseTokenVerifier.Identity(
-            UUID.randomUUID(), email, "Second", "Person", Instant.now().plusSeconds(3600))));
+            UUID.randomUUID(), email, "Second", "Person", "Second Person", Instant.now().plusSeconds(3600))));
         assertEquals(HttpStatus.OK, authenticated("/api/v1/auth/me", HttpMethod.GET, "first-identity").getStatusCode());
         assertEquals(HttpStatus.CONFLICT, authenticated("/api/v1/auth/me", HttpMethod.GET, "second-identity").getStatusCode());
     }

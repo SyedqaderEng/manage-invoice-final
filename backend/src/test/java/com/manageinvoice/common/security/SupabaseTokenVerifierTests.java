@@ -46,6 +46,23 @@ class SupabaseTokenVerifierTests {
     }
 
     @Test
+    void obtainsGoogleNamesFromVerifiedMetadata() {
+        RestClient.Builder builder = RestClient.builder().baseUrl("https://example.supabase.co");
+        MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+        var verifier = new SupabaseTokenVerifier(builder.build(), "public-test-key", new ObjectMapper());
+        String payload = Base64.getUrlEncoder().withoutPadding().encodeToString(
+            ("{\"exp\":" + Instant.now().plusSeconds(600).getEpochSecond() + "}").getBytes(StandardCharsets.UTF_8));
+        server.expect(requestTo("https://example.supabase.co/auth/v1/user"))
+            .andRespond(withSuccess("{\"id\":\"" + UUID.randomUUID() + "\",\"email\":\"test@example.com\","
+                + "\"user_metadata\":{\"given_name\":\"Google\",\"family_name\":\"User\",\"full_name\":\"Google User\"}}", MediaType.APPLICATION_JSON));
+        var identity = verifier.verify("header." + payload + ".signature").orElseThrow();
+        assertEquals("Google", identity.firstName());
+        assertEquals("User", identity.lastName());
+        assertEquals("Google User", identity.displayName());
+        server.verify();
+    }
+
+    @Test
     void distinguishesInvalidCredentialsFromProviderFailure() {
         RestClient.Builder builder = RestClient.builder().baseUrl("https://example.supabase.co");
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();

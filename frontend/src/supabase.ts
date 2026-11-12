@@ -7,4 +7,4 @@ if (!url || !publishableKey) {
   throw new Error('Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY, or run scripts/start-supabase-web.ps1.')
 }
 
-export const supabase = createClient(url, publishableKey)
+export const supabase = createClient(url, publishableKey, { auth: { flowType: 'pkce' } })

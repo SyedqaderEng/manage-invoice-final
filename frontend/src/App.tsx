@@ -13,7 +13,7 @@ import { api, ApiError } from './api'
 import { supabase } from './supabase'
 import { parseUploadUsage, type UploadUsage } from './features/billing/usage'
 
-interface User { id: string; email: string; firstName: string; lastName: string }
+interface User { id: string; email: string; firstName: string | null; lastName: string | null; displayName: string | null }
 
 type Api = typeof api
 
@@ -86,8 +86,8 @@ export function App() {
   }, [token, sessionRetry, recoveryUserId])
 
   useEffect(() => {
-    if (token && !recoveryUserId && ['/', '/login', '/register'].includes(pathname)) navigate('/app')
-  }, [token, pathname, recoveryUserId])
+    if (token && sessionState === 'ready' && !recoveryUserId && ['/', '/login', '/register'].includes(pathname)) navigate('/app')
+  }, [token, pathname, recoveryUserId, sessionState])
 
   async function logout() {
     if (loggingOut) return
@@ -143,7 +143,15 @@ export function App() {
     </main>
   }
 
-  const userName = user ? `${user.firstName} ${user.lastName}` : 'Your account'
+  if (import.meta.env.VITE_AUTH_ONLY === 'true') {
+    return <main className="page-content">
+      <AccountSettings user={user} token={token} api={api} onSaved={setUser} />
+      <Button variant="secondary" disabled={loggingOut} onClick={logout}>{loggingOut ? 'Signing out…' : 'Sign out'}</Button>
+      {logoutError ? <p className="form-error" role="alert">{logoutError}</p> : null}
+    </main>
+  }
+
+  const userName = user?.displayName || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Your account'
   return (
     <div className="app-shell">
       {mobileOpen ? <button className="sidebar-backdrop" aria-label="Close navigation" onClick={() => setMobileOpen(false)} /> : null}
@@ -232,7 +240,7 @@ function AccountSettings({ user, token, api, onSaved }: {
     try {
       const updated = await api<User>('/api/v1/auth/me', {
         method: 'PATCH',
-        body: JSON.stringify({ firstName: form.get('firstName'), lastName: form.get('lastName') }),
+        body: JSON.stringify({ firstName: form.get('firstName'), lastName: form.get('lastName'), displayName: form.get('displayName') }),
       }, token)
       onSaved(updated)
       setMessage('Your profile has been saved.')
@@ -245,8 +253,9 @@ function AccountSettings({ user, token, api, onSaved }: {
       <div className="page-heading"><div><p className="section-kicker">YOUR ACCOUNT</p><h1>Profile settings</h1></div></div>
       <form className="settings-form" onSubmit={save}>
         <label className="field">Email address<input value={user?.email || ''} readOnly /></label>
-        <label className="field">First name<input name="firstName" defaultValue={user?.firstName || ''} required /></label>
-        <label className="field">Last name<input name="lastName" defaultValue={user?.lastName || ''} required /></label>
+        <label className="field">Display name<input name="displayName" defaultValue={user?.displayName || ''} maxLength={200} /></label>
+        <label className="field">First name<input name="firstName" defaultValue={user?.firstName || ''} maxLength={100} /></label>
+        <label className="field">Last name<input name="lastName" defaultValue={user?.lastName || ''} maxLength={100} /></label>
         {error ? <p className="form-error" role="alert">{error}</p> : null}
         {message ? <p className="form-success" role="status">{message}</p> : null}
         <Button type="submit">Save changes</Button>

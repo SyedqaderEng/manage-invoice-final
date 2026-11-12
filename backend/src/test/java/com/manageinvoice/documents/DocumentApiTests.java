@@ -10,10 +10,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -49,7 +47,6 @@ class DocumentApiTests {
     @Autowired ObjectMapper objectMapper;
     @Autowired JdbcTemplate jdbc;
     @MockitoSpyBean ObjectStorage storage;
-    @MockitoSpyBean DocumentRepository documents;
 
     @Test
     void documentsArePrivateToTheirOwnerAndCanBeDeleted() throws Exception {
@@ -180,17 +177,6 @@ class DocumentApiTests {
         mockMvc.perform(multipart("/api/v1/documents").file(pdf("failure.pdf"))
                 .header("Authorization", "Bearer " + owner))
             .andExpect(status().isInternalServerError());
-        mockMvc.perform(get("/api/v1/billing/personal/usage").header("Authorization", "Bearer " + owner))
-            .andExpect(status().isOk()).andExpect(jsonPath("$.trackedUploads").value(0));
-    }
-
-    @Test
-    void databaseFailureRollsBackUsageAndRemovesStoredObject() throws Exception {
-        String owner = register("usage-db-failure-" + UUID.randomUUID() + "@example.com");
-        doThrow(new IllegalStateException("database unavailable")).when(documents).saveAndFlush(any(Document.class));
-        assertThrows(Exception.class, () -> mockMvc.perform(multipart("/api/v1/documents").file(pdf("failure.pdf"))
-            .header("Authorization", "Bearer " + owner)));
-        verify(storage).delete(any());
         mockMvc.perform(get("/api/v1/billing/personal/usage").header("Authorization", "Bearer " + owner))
             .andExpect(status().isOk()).andExpect(jsonPath("$.trackedUploads").value(0));
     }

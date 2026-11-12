@@ -14,7 +14,6 @@ import com.manageinvoice.common.security.AuthenticatedUser;
 import com.manageinvoice.common.security.TokenRevocationService;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /** Account endpoints for a user already signed in through Supabase Auth. */
@@ -43,8 +42,9 @@ public class AuthController {
     @PatchMapping("/me")
     public AuthService.UserResponse updateProfile(@AuthenticationPrincipal AuthenticatedUser principal,
                                                   @Valid @RequestBody ProfileRequest request) {
-        return authService.updateProfile(principal.id(), new AuthService.ProfileRequest(request.firstName(), request.lastName()));
+        return authService.updateProfile(principal.id(), new AuthService.ProfileRequest(request.firstName(), request.lastName(), request.displayName()));
     }
 
-    public record ProfileRequest(@NotBlank @Size(max = 100) String firstName, @NotBlank @Size(max = 100) String lastName) {}
+    public record ProfileRequest(@Size(max = 100) String firstName, @Size(max = 100) String lastName,
+                                 @Size(max = 200) String displayName) {}
 }

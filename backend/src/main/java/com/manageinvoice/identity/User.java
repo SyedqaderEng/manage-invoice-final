@@ -21,11 +21,14 @@ public class User {
     @Column(nullable = false, unique = true, length = 320)
     private String email;
 
-    @Column(name = "first_name", nullable = false, length = 100)
+    @Column(name = "first_name", length = 100)
     private String firstName;
 
-    @Column(name = "last_name", nullable = false, length = 100)
+    @Column(name = "last_name", length = 100)
     private String lastName;
+
+    @Column(name = "display_name", length = 200)
+    private String displayName;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -60,6 +63,8 @@ public class User {
     public void setFirstName(String firstName) { this.firstName = firstName; }
     public String getLastName() { return lastName; }
     public void setLastName(String lastName) { this.lastName = lastName; }
+    public String getDisplayName() { return displayName; }
+    public void setDisplayName(String displayName) { this.displayName = displayName; }
     public UserStatus getStatus() { return status; }
     public boolean isEmailVerified() { return emailVerified; }
 }
