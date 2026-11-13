@@ -89,11 +89,17 @@ class ReceiptExtractor {
                     items.add(new ReceiptData.LineItem(description, description, false, null, null, new BigDecimal(item.group(2))));
                 }
             } else if (vendor == null && value.length() <= 255 && value.matches(".*[A-Za-z].*") && !NOT_VENDOR.matcher(value).matches()) {
-                vendor = value;
+                vendor = cleanVendor(value);
+                if (vendor.isEmpty()) vendor = null;
             }
         }
         // A "$" with no explicit currency line is treated as USD; the editor tells the user to verify it.
         if (currency == null && sawDollar) currency = "USD";
         return new ReceiptData(vendor, number, date, time, currency, subtotal, tax, discount, total, null, items);
+    }
+
+    // OCR often adds stray symbols next to logos, e.g. "Walmart >}<".
+    private static String cleanVendor(String value) {
+        return value.replaceAll("[^\\p{L}\\p{N}&'.,\\- ]", "").replaceAll("\\s+", " ").replaceAll("^[\\s.,\\-]+|[\\s.,\\-]+$", "");
     }
 }

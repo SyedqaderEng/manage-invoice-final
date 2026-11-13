@@ -1,9 +1,9 @@
-# Runtime configuration. Supabase is the only backing service:
+# Runtime configuration:
 #  - Postgres database (schema "ledgerly")
-#  - Storage bucket for original documents
+#  - Amazon S3 bucket for original documents
 #  - Auth for sign-up / sign-in (the API verifies Supabase access tokens)
 # Values come from environment variables or git-ignored local configuration files.
-# The Windows Supabase startup script can generate .env.supabase for Eclipse.
+# The Windows Supabase startup script can generate a local Eclipse configuration.
 spring:
   application:
     name: manage-invoice
@@ -27,11 +27,13 @@ spring:
       ddl-auto: validate
     properties:
       hibernate:
-        default_schema: ledgerly
+        default_schema: '"manage-receipt"'
   flyway:
     enabled: true
-    schemas: ledgerly
-    default-schema: ledgerly
+    schemas: manage-receipt
+    default-schema: manage-receipt
+    baseline-on-migrate: true
+    baseline-version: 0
 
 server:
   address: ${SERVER_ADDRESS:127.0.0.1}
@@ -43,9 +45,10 @@ security:
     publishable-key: ${SUPABASE_PUBLISHABLE_KEY}
 
 storage:
-  supabase:
-    service-key: ${SUPABASE_SERVICE_ROLE_KEY}
-    bucket: ${SUPABASE_STORAGE_BUCKET:ledgerly-documents}
+  s3:
+    region: ${AWS_REGION:us-east-2}
+    bucket: ${AWS_S3_BUCKET:manage-recipt-s3-365513553621-us-east-2-an}
+    profile: ${AWS_PROFILE:manage-invoice}
 
 management:
   endpoints:

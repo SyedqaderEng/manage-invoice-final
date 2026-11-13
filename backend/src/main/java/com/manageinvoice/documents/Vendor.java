@@ -16,7 +16,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "vendors")
+@Table(name = "ledgerly_vendors")
 public class Vendor {
     @Id
     private UUID id;

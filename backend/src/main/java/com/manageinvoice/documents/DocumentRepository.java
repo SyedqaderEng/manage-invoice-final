@@ -10,5 +10,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface DocumentRepository extends JpaRepository<Document, UUID> {
     Page<Document> findByOwnerIdAndDeletedAtIsNull(UUID ownerId, Pageable pageable);
     Optional<Document> findByIdAndOwnerIdAndDeletedAtIsNull(UUID id, UUID ownerId);
-    boolean existsByOwnerIdAndChecksumAndDeletedAtIsNull(UUID ownerId, String checksum);
+    Optional<Document> findByOwnerIdAndChecksumAndDeletedAtIsNull(UUID ownerId, String checksum);
 }

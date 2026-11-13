@@ -29,11 +29,14 @@ class DigitalReceiptService {
     private final CategoryRepository categories;
     private final ObjectMapper json;
     private final TransactionTemplate transactions;
+    private final CustomerDataService customerData;
 
     DigitalReceiptService(DocumentService documents, DocumentOcrService ocr, ReceiptExtractor extractor,
                           DigitalReceiptRepository records, UserRepository users, ObjectMapper json,
                           LocalVisionReceiptExtractor vision, @Value("${receipt.ai.enabled:false}") boolean aiEnabled,
-                          TransactionTemplate transactions, CategoryRepository categories) {
+                          TransactionTemplate transactions, CategoryRepository categories,
+                          CustomerDataService customerData) {
+        this.customerData = customerData;
         this.documents = documents;
         this.ocr = ocr;
         this.extractor = extractor;
@@ -111,6 +114,7 @@ class DigitalReceiptService {
                 : categories.findByIdAndOwnerIdAndActiveTrue(categoryId, ownerId).isPresent();
             if (!valid) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category not found for this account");
         }
+        customerData.ensureVendor(ownerId, request.data().vendor());
         record.update(serialize(request.data()), request.confirmed());
         return response(records.saveAndFlush(record));
     }

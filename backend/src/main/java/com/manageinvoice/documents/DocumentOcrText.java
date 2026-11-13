@@ -9,7 +9,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "document_ocr_text")
+@Table(name = "ledgerly_document_ocr_text")
 class DocumentOcrText {
     @Id
     @Column(name = "document_id")

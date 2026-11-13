@@ -16,7 +16,7 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "categories")
+@Table(name = "ledgerly_categories")
 public class Category {
     @Id
     private UUID id;

@@ -55,7 +55,7 @@ public class DocumentService {
     }
 
     @Transactional
-    public DocumentResponse upload(UUID ownerId, MultipartFile file) {
+    public UploadResult upload(UUID ownerId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Choose a document to upload");
         }
@@ -76,9 +76,8 @@ public class DocumentService {
         String checksum = checksum(content);
         User owner = users.findByIdForUpdate(ownerId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Account not found"));
-        if (documents.existsByOwnerIdAndChecksumAndDeletedAtIsNull(ownerId, checksum)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "This document has already been uploaded");
-        }
+        Document existing = documents.findByOwnerIdAndChecksumAndDeletedAtIsNull(ownerId, checksum).orElse(null);
+        if (existing != null) return new UploadResult(new DocumentResponse(existing), true);
         usage.recordUpload(ownerId);
 
         Document document = new Document();
@@ -110,7 +109,7 @@ public class DocumentService {
                 }
             }
         });
-        return new DocumentResponse(documents.saveAndFlush(document));
+        return new UploadResult(new DocumentResponse(documents.saveAndFlush(document)), false);
     }
 
     @Transactional(readOnly = true)
@@ -184,5 +183,7 @@ public class DocumentService {
         }
     }
 
-    public record OwnedDocument(Document document) {}
+    public record UploadResult(DocumentResponse document, boolean alreadyUploaded) {}
+
+    record OwnedDocument(Document document) {}
 }

@@ -10,32 +10,42 @@ function Read-Setting([string] $text, [string] $name) {
 }
 
 $local = [System.IO.File]::ReadAllText((Join-Path $root '.env'))
-$secrets = [System.IO.File]::ReadAllText((Join-Path $root 'secrets'))
-$env:SUPABASE_URL = Read-Setting $secrets 'NEXT_PUBLIC_SUPABASE_URL'
-$env:SUPABASE_PUBLISHABLE_KEY = Read-Setting $secrets 'NEXT_PUBLIC_SUPABASE_ANON_KEY'
-$database = [uri](Read-Setting $secrets 'DATABASE_URL')
+$env:SUPABASE_URL = Read-Setting $local 'SUPABASE_URL'
+$env:SUPABASE_PUBLISHABLE_KEY = Read-Setting $local 'SUPABASE_PUBLISHABLE_KEY'
+$databaseUrl = Read-Setting $local 'SUPABASE_DB_URL'
+$env:SUPABASE_DB_USERNAME = Read-Setting $local 'SUPABASE_DB_USERNAME'
+$env:SUPABASE_DB_PASSWORD = Read-Setting $local 'SUPABASE_DB_PASSWORD'
 $authUrl = [uri]$env:SUPABASE_URL
-if ($database.Scheme -notin @('postgres', 'postgresql') -or
-    $database.Host -ne "db.$($authUrl.Host)" -or $authUrl.Scheme -ne 'https' -or
+if ($authUrl.Scheme -ne 'https' -or
     $authUrl.Host -notmatch '^[a-z0-9]+\.supabase\.co$') {
+    throw 'The Supabase authentication URL is invalid.'
+}
+$database = [regex]::Match($databaseUrl, '^jdbc:postgresql://(?<host>[^/:?]+)(?::(?<port>\d+))?/(?<name>[A-Za-z0-9_]+)\?(?<query>.+)$')
+if (-not $database.Success) {
+    throw 'The Supabase database JDBC URL is invalid.'
+}
+$projectRef = $authUrl.Host.Split('.')[0]
+$databaseHost = $database.Groups['host'].Value
+$directConnection = $databaseHost -eq "db.$($authUrl.Host)"
+$poolerConnection = $databaseHost.EndsWith('.pooler.supabase.com') -and
+    $env:SUPABASE_DB_USERNAME -eq "postgres.$projectRef"
+if (-not $directConnection -and -not $poolerConnection) {
     throw 'The database and authentication URLs must belong to the same Supabase project.'
 }
-$credentials = $database.UserInfo.Split(':', 2)
-if ($credentials.Length -ne 2) { throw 'Database username or password is missing.' }
-$env:SUPABASE_DB_USERNAME = [uri]::UnescapeDataString($credentials[0])
-$env:SUPABASE_DB_PASSWORD = [uri]::UnescapeDataString($credentials[1])
-$caPath = Join-Path $root 'prod-ca-2021.crt'
+if ($database.Groups['query'].Value -notmatch '(?:^|&)sslmode=verify-full(?:&|$)') {
+    throw 'The Supabase database URL must verify the server certificate and hostname.'
+}
+$rootCertMatch = [regex]::Match($database.Groups['query'].Value, '(?:^|&)sslrootcert=([^&]+)')
+if (-not $rootCertMatch.Success) { throw 'The Supabase database CA certificate is not configured.' }
+$caPath = [uri]::UnescapeDataString($rootCertMatch.Groups[1].Value)
 if (-not (Test-Path -LiteralPath $caPath -PathType Leaf)) { throw 'Supabase database CA certificate is missing.' }
-$rootCert = [uri]::EscapeDataString($caPath)
-$dbName = $database.AbsolutePath.TrimStart('/')
-if ($dbName -notmatch '^[A-Za-z0-9_]+$') { throw 'Unsupported database name.' }
-$port = if ($database.IsDefaultPort) { 5432 } else { $database.Port }
-$env:SUPABASE_DB_URL = "jdbc:postgresql://$($database.Host):$port/$($dbName)?sslmode=verify-full&sslrootcert=$rootCert&currentSchema=ledgerly"
-$env:SUPABASE_SERVICE_ROLE_KEY = Read-Setting $secrets 'SUPABASE_SERVICE_ROLE_KEY'
-$env:SUPABASE_STORAGE_BUCKET = 'ledgerly-documents'
-$env:SPRING_FLYWAY_SCHEMAS = 'ledgerly'
-$env:SPRING_FLYWAY_DEFAULT_SCHEMA = 'ledgerly'
-$env:SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA = 'ledgerly'
+$env:SUPABASE_DB_URL = $databaseUrl
+$env:AWS_REGION = 'us-east-2'
+$env:AWS_S3_BUCKET = 'manage-recipt-s3-365513553621-us-east-2-an'
+if ([string]::IsNullOrWhiteSpace($env:AWS_PROFILE)) { $env:AWS_PROFILE = 'manage-invoice' }
+$env:SPRING_FLYWAY_SCHEMAS = 'manage-receipt'
+$env:SPRING_FLYWAY_DEFAULT_SCHEMA = 'manage-receipt'
+$env:SPRING_JPA_PROPERTIES_HIBERNATE_DEFAULT_SCHEMA = '"manage-receipt"'
 $env:SERVER_ADDRESS = '127.0.0.1'
 $env:SERVER_PORT = '8094'
 $ocr = [regex]::Match($local, '(?im)^\s*OCR_TESSERACT_COMMAND\s*=\s*["'']?([^\r\n"'']+)')
@@ -57,8 +67,9 @@ if ($ConfigureEclipse) {
         SUPABASE_DB_URL = $env:SUPABASE_DB_URL
         SUPABASE_DB_USERNAME = $env:SUPABASE_DB_USERNAME
         SUPABASE_DB_PASSWORD = $env:SUPABASE_DB_PASSWORD
-        SUPABASE_SERVICE_ROLE_KEY = $env:SUPABASE_SERVICE_ROLE_KEY
-        SUPABASE_STORAGE_BUCKET = $env:SUPABASE_STORAGE_BUCKET
+        AWS_REGION = $env:AWS_REGION
+        AWS_S3_BUCKET = $env:AWS_S3_BUCKET
+        AWS_PROFILE = $env:AWS_PROFILE
     }
     $lines = foreach ($entry in $settings.GetEnumerator()) {
         if ($entry.Value.Contains('${') -or $entry.Value.Contains("`n") -or $entry.Value.Contains("`r")) {
@@ -89,7 +100,7 @@ if ($ConfigureEclipse) {
         if ($created) { Remove-Item -LiteralPath $configPath -Force }
         throw
     }
-    Write-Host 'Created a user-restricted local Supabase configuration for Eclipse.'
+    Write-Host 'Created a user-restricted local application configuration for Eclipse.'
     return
 }
 

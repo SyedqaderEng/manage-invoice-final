@@ -15,7 +15,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "documents")
+@Table(name = "ledgerly_documents")
 public class Document {
     @Id
     private UUID id;

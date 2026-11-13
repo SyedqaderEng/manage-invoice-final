@@ -24,6 +24,11 @@ interface DocumentPage {
   totalElements: number
 }
 
+interface UploadResult {
+  document: DocumentRecord
+  alreadyUploaded: boolean
+}
+
 type Api = <T,>(path: string, options?: RequestInit, token?: string) => Promise<T>
 
 const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp']
@@ -71,6 +76,37 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
     setRefreshKey(value => value + 1)
   }
 
+  const loadOrCreateReceipt = async (document: DocumentRecord) => {
+    try {
+      const record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, {}, token)
+      return { record, manualEntry: false }
+    } catch (reason) {
+      if (!(reason instanceof ApiError && reason.status === 404)) throw reason
+    }
+
+    try {
+      const record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, { method: 'POST' }, token)
+      return { record, manualEntry: false }
+    } catch (reason) {
+      if (reason instanceof ApiError && reason.status === 409) {
+        const record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, {}, token)
+        return { record, manualEntry: false }
+      }
+      if (!(reason instanceof ApiError && reason.status === 503)) throw reason
+    }
+
+    try {
+      const record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record?recognize=false`, { method: 'POST' }, token)
+      return { record, manualEntry: true }
+    } catch (reason) {
+      if (reason instanceof ApiError && reason.status === 409) {
+        const record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, {}, token)
+        return { record, manualEntry: false }
+      }
+      throw reason
+    }
+  }
+
   useEffect(() => () => {
     if (preview) URL.revokeObjectURL(preview.url)
   }, [preview])
@@ -91,25 +127,38 @@ export function DocumentLibrary({ token, api }: { token: string; api: Api }) {
     setError('')
     setUploading(true)
     let uploadedCount = 0
+    let existingCount = 0
     const processingFailures: string[] = []
+    const recognitionNotes: string[] = []
     try {
       for (const [index, file] of files.entries()) {
         setUploadProgress(`Uploading ${index + 1} of ${files.length}: ${file.name}`)
         const body = new FormData()
         body.append('file', file)
-        const document = await api<DocumentRecord>('/api/v1/documents', { method: 'POST', body }, token)
+        const result = await api<UploadResult>('/api/v1/documents', { method: 'POST', body }, token)
+        const document = result.document
         uploadedCount += 1
-        setUploadProgress(`Analyzing ${index + 1} of ${files.length}: ${file.name}`)
+        if (result.alreadyUploaded) existingCount += 1
+        setUploadProgress(`Preparing digital record ${index + 1} of ${files.length}: ${file.name}`)
         try {
-          const record = await api<ReceiptRecord>(`/api/v1/documents/${document.id}/record`, { method: 'POST' }, token)
+          const { record, manualEntry } = await loadOrCreateReceipt(document)
           setReceipts(current => [...current, { document, record }])
+          if (manualEntry) {
+            recognitionNotes.push(`${file.name}: Automatic extraction was unavailable; a blank draft is ready for manual entry.`)
+          }
         } catch (reason) {
           processingFailures.push(`${file.name}: ${reason instanceof Error ? reason.message : 'Recognition failed'}`)
         }
       }
       setFiles([])
       if (fileInput.current) fileInput.current.value = ''
-      setUploadProgress(`${uploadedCount} document${uploadedCount === 1 ? '' : 's'} uploaded.${processingFailures.length ? ' Some records need attention; open them to retry or enter details manually.' : ' Digital drafts are ready to review.'}`)
+      const newCount = uploadedCount - existingCount
+      const summary = existingCount === uploadedCount
+        ? `${existingCount} matching existing document${existingCount === 1 ? '' : 's'} opened for review.`
+        : existingCount
+          ? `${newCount} new and ${existingCount} existing documents ready to review.`
+          : `${uploadedCount} document${uploadedCount === 1 ? '' : 's'} uploaded.`
+      setUploadProgress(`${summary} ${recognitionNotes.join(' ')}`.trim())
       if (processingFailures.length) setError(processingFailures.join(' '))
     } catch (reason) {
       if (uploadedCount) {

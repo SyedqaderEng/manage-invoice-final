@@ -85,7 +85,7 @@ class LocalOcr {
     private String runTesseract(byte[] input) {
         Process process;
         try {
-            process = new ProcessBuilder(command, "stdin", "stdout", "-l", "eng")
+            process = new ProcessBuilder(command, "stdin", "stdout", "-l", "eng", "--psm", "4")
                 .redirectError(ProcessBuilder.Redirect.DISCARD).start();
         } catch (IOException exception) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,

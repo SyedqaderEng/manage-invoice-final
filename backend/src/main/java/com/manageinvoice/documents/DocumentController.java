@@ -87,11 +87,12 @@ public class DocumentController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DocumentResponse> upload(
+    public ResponseEntity<DocumentService.UploadResult> upload(
         @AuthenticationPrincipal AuthenticatedUser principal,
         @RequestParam("file") MultipartFile file
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(documents.upload(principal.id(), file));
+        DocumentService.UploadResult result = documents.upload(principal.id(), file);
+        return ResponseEntity.status(result.alreadyUploaded() ? HttpStatus.OK : HttpStatus.CREATED).body(result);
     }
 
     @GetMapping("/{id}/content")

@@ -74,6 +74,21 @@ public class CustomerDataService {
     }
 
     @Transactional
+    public void ensureVendor(UUID ownerId, String name) {
+        if (name == null || name.isBlank()) return;
+        String displayName = name.trim().replaceAll("\\s+", " ");
+        if (displayName.length() > 255) displayName = displayName.substring(0, 255);
+        String normalizedName = normalize(displayName);
+        if (vendors.existsByOwnerIdAndNormalizedName(ownerId, normalizedName)) return;
+        Vendor vendor = new Vendor();
+        vendor.setId(UUID.randomUUID());
+        vendor.setOwner(findUser(ownerId));
+        vendor.setDisplayName(displayName);
+        vendor.setNormalizedName(normalizedName);
+        vendors.save(vendor);
+    }
+
+    @Transactional
     public CategoryResponse updateCategory(UUID ownerId, UUID id, CategoryRequest request) {
         Category category = findCategory(ownerId, id);
         String name = request.name().trim();

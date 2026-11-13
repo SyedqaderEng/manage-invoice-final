@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
 @Entity
-@Table(name = "digital_receipt_records")
+@Table(name = "ledgerly_digital_receipt_records")
 class DigitalReceiptRecord {
     @Id
     @Column(name = "document_id")
